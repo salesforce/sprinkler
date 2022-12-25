@@ -1,0 +1,20 @@
+services:
+  ws:
+    image: golang
+    working_dir: /sprinkler
+    volumes:
+      - ./:/sprinkler
+    environment:
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    ports:
+      - 8080:8080
+    tty: true
+  db:
+    image: postgres
+    volumes:
+      - sprinkler-postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+
+volumes:
+  sprinkler-postgres-data:
