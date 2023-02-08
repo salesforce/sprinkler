@@ -9,18 +9,19 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+	"mce.salesforce.com/sprinkler/model"
 )
 
 type Workflow struct {
 	gorm.Model
-	Name        string    `gorm:"type:varchar(256);not null"`
-	Artifact    string    `gorm:"type:varchar(2048);not null"`
-	Command     string    `gorm:"type:text;not null"`
-	Every       string    `gorm:"type:varchar(64);not null"`
-	NextRuntime time.Time `gorm:"not null"`
-	Backfill    bool      `gorm:"not null"`
-	Owner       *string   `gorm:"type:varchar(2048)"`
-	IsActive    bool      `gorm:"not null"`
+	Name        string      `gorm:"type:varchar(256);not null"`
+	Artifact    string      `gorm:"type:varchar(2048);not null"`
+	Command     string      `gorm:"type:text;not null"`
+	Every       model.Every `gorm:"type:varchar(64);not null"`
+	NextRuntime time.Time   `gorm:"not null"`
+	Backfill    bool        `gorm:"not null"`
+	Owner       *string     `gorm:"type:varchar(2048)"`
+	IsActive    bool        `gorm:"not null"`
 
 	ScheduledWorkflows []ScheduledWorkflow
 }

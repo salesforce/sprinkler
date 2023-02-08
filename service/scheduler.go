@@ -13,6 +13,7 @@ import (
 	"gorm.io/gorm"
 	"mce.salesforce.com/sprinkler/database"
 	"mce.salesforce.com/sprinkler/database/table"
+	"mce.salesforce.com/sprinkler/model"
 	"mce.salesforce.com/sprinkler/orchard"
 )
 
@@ -77,13 +78,62 @@ func lockAndRun(db *gorm.DB, wf table.Workflow) {
 		panic("Don't panic, do something1")
 	}
 	err = client.Activate(orchardID)
+	scheduleStatus := "activated"
 	if err != nil {
-		// TODO should not panic here
 		fmt.Println(err)
-		panic("Dont' panic, do something2")
+		scheduleStatus = "error"
 	}
+
+	// add to scheduled and update the next run time
+	db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Create(&table.ScheduledWorkflow{
+			WorkflowID:         wf.ID,
+			OrchardID:          orchardID,
+			StartTime:          time.Now(),
+			ScheduledStartTime: wf.NextRuntime,
+			Status:             scheduleStatus,
+		}).Error; err != nil {
+			return err
+		}
+
+		fmt.Println(wf.Every)
+
+		if err := tx.Model(&wf).Update(
+			"next_runtime", nextRuntime(wf.NextRuntime, wf.Every, wf.Backfill),
+		).Error; err != nil {
+			return err
+		}
+		return nil
+	})
 
 	// release the lock
 	db.Where("workflow_id = ? and token = ?", wf.ID, token).
 		Delete(&table.WorkflowSchedulerLock{})
+}
+
+// ignore addInterval parsing error here, since it shouldn't fail
+func nextRuntime(start time.Time, every model.Every, backfill bool) time.Time {
+	next := addInterval(start, every)
+	if backfill || next.After(time.Now()) {
+		return next
+	} else {
+		return nextRuntime(next, every, backfill)
+	}
+}
+
+func addInterval(someTime time.Time, every model.Every) time.Time {
+	switch every.Unit {
+	case model.EveryMinute:
+		return someTime.Add(time.Duration(every.Quantity) * time.Minute)
+	case model.EveryDay:
+		return someTime.AddDate(0, 0, int(every.Quantity))
+	case model.EveryWeek:
+		return someTime.AddDate(0, 0, int(every.Quantity*7))
+	case model.EveryMonth:
+		return someTime.AddDate(0, int(every.Quantity), 0)
+	case model.EveryYear:
+		return someTime.AddDate(int(every.Quantity), 0, 0)
+	}
+	panic("wrong")
+	return someTime
 }
