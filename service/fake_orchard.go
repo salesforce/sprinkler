@@ -17,6 +17,7 @@ import (
 type FakeOrchard struct {
 	mu        sync.Mutex
 	Workflows map[string]WorkflowStatus
+	address   string
 }
 
 type WorkflowStatus struct {
@@ -28,9 +29,10 @@ type orchardWorkflow struct {
 	name string `json:"name"`
 }
 
-func NewFakeOrchard() *FakeOrchard {
+func NewFakeOrchard(address string) *FakeOrchard {
 	return &FakeOrchard{
 		Workflows: make(map[string]WorkflowStatus),
+		address:   address,
 	}
 }
 
@@ -69,5 +71,5 @@ func (o *FakeOrchard) Run() {
 	r := gin.Default()
 	r.POST("v1/workflow", o.postWorkflow)
 	r.PUT("v1/workflow/:id/activate", o.activateWorkflow)
-	r.Run()
+	r.Run(o.address)
 }

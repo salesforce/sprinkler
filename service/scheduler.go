@@ -18,8 +18,9 @@ import (
 )
 
 type Scheduler struct {
-	Interval time.Duration
-	MaxSize  uint
+	Interval    time.Duration
+	MaxSize     uint
+	OrchardHost string
 }
 
 func (s *Scheduler) Start() {
@@ -27,11 +28,11 @@ func (s *Scheduler) Start() {
 	tick := time.Tick(s.Interval)
 	for _ = range tick {
 		fmt.Println("tick")
-		scheduleWorkflows(database.GetInstance())
+		s.scheduleWorkflows(database.GetInstance())
 	}
 }
 
-func scheduleWorkflows(db *gorm.DB) {
+func (s *Scheduler) scheduleWorkflows(db *gorm.DB) {
 	var workflows []table.Workflow
 
 	db.Model(&table.Workflow{}).
@@ -41,11 +42,11 @@ func scheduleWorkflows(db *gorm.DB) {
 
 	// db.Where("next_runtime <= ?", time.Now()).Find(&workflows)
 	for _, wf := range workflows {
-		go lockAndRun(db, wf)
+		go s.lockAndRun(db, wf)
 	}
 }
 
-func lockAndRun(db *gorm.DB, wf table.Workflow) {
+func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 	token := uuid.New().String()
 
 	lock := table.WorkflowSchedulerLock{
@@ -69,7 +70,7 @@ func lockAndRun(db *gorm.DB, wf table.Workflow) {
 
 	fmt.Println("running workflow", wf.Name, token)
 	client := &orchard.OrchardRestClient{
-		Host: "http://ws:8080",
+		Host: s.OrchardHost,
 	}
 	orchardID, err := client.Create(wf)
 	if err != nil {
