@@ -12,8 +12,12 @@ import (
 	"mce.salesforce.com/sprinkler/service"
 )
 
-var intervalOpt time.Duration
-var orchardAddress string
+type SchedulerCmdOpt struct {
+	Interval       time.Duration
+	OrchardAddress string
+}
+
+var schedulerCmdOpt SchedulerCmdOpt
 
 // schedulerCmd represents the scheduler command
 var schedulerCmd = &cobra.Command{
@@ -27,9 +31,9 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		scheduler := &service.Scheduler{
-			Interval:    intervalOpt,
+			Interval:    schedulerCmdOpt.Interval,
 			MaxSize:     10,
-			OrchardHost: orchardAddress,
+			OrchardHost: schedulerCmdOpt.OrchardAddress,
 		}
 		scheduler.Start()
 	},
@@ -38,6 +42,16 @@ to quickly create a Cobra application.`,
 func init() {
 	serviceCmd.AddCommand(schedulerCmd)
 
-	schedulerCmd.Flags().DurationVar(&intervalOpt, "interval", time.Minute, "scheduler check interval")
-	schedulerCmd.Flags().StringVar(&orchardAddress, "orchard", "http://ws:8081", "address to orchard service")
+	schedulerCmd.Flags().DurationVar(
+		&schedulerCmdOpt.Interval,
+		"interval",
+		time.Minute,
+		"scheduler check interval",
+	)
+	schedulerCmd.Flags().StringVar(
+		&schedulerCmdOpt.OrchardAddress,
+		"orchard",
+		"http://ws:8081",
+		"address to orchard service",
+	)
 }

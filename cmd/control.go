@@ -14,6 +14,12 @@ import (
 
 var controlAddress string
 
+type ControlCmdOpt struct {
+	Address string
+}
+
+var controlCmdOpt ControlCmdOpt
+
 // controlCmd represents the control command
 var controlCmd = &cobra.Command{
 	Use:   "control",
@@ -26,7 +32,7 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("control called")
-		ctrl := service.NewControl(controlAddress)
+		ctrl := service.NewControl(controlCmdOpt.Address)
 		ctrl.Run()
 	},
 }
@@ -34,5 +40,5 @@ to quickly create a Cobra application.`,
 func init() {
 	serviceCmd.AddCommand(controlCmd)
 
-	controlCmd.Flags().StringVar(&controlAddress, "address", ":8080", "The address to listen to (e.g.: ':8080')")
+	controlCmd.Flags().StringVar(&controlCmdOpt.Address, "address", ":8080", "The address to listen to (e.g.: ':8080')")
 }

@@ -12,13 +12,11 @@ import (
 	"mce.salesforce.com/sprinkler/service"
 )
 
-type OrchardCmd struct {
+type OrchardCmdOpt struct {
 	Address string
 }
 
-var orchardCmdOpt OrchardCmd
-
-var orchardAddress string
+var orchardCmdOpt OrchardCmdOpt
 
 // orchardCmd represents the orchard command
 var orchardCmd = &cobra.Command{
@@ -27,7 +25,7 @@ var orchardCmd = &cobra.Command{
 	Long:  `Runs a fake orchard server for testing`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("orchard called")
-		fo := service.NewFakeOrchard(orchardAddress)
+		fo := service.NewFakeOrchard(orchardCmdOpt.Address)
 		fo.Run()
 	},
 }
@@ -35,5 +33,10 @@ var orchardCmd = &cobra.Command{
 func init() {
 	serviceCmd.AddCommand(orchardCmd)
 
-	orchardCmd.Flags().StringVar(&orchardAddress, "address", ":8081", "The address to listen to (e.g.: ':8081'")
+	orchardCmd.Flags().StringVar(
+		&orchardCmdOpt.Address,
+		"address",
+		":8081",
+		"The address to listen to (e.g.: ':8081')",
+	)
 }
