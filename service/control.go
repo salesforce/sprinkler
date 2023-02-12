@@ -18,7 +18,8 @@ import (
 )
 
 type Control struct {
-	db *gorm.DB
+	db      *gorm.DB
+	address string
 }
 
 type postWorkflowReq struct {
@@ -32,9 +33,10 @@ type postWorkflowReq struct {
 	IsActive    bool      `json:"isActive" binding:"required"`
 }
 
-func NewControl() *Control {
+func NewControl(address string) *Control {
 	return &Control{
-		db: database.GetInstance(),
+		db:      database.GetInstance(),
+		address: address,
 	}
 }
 
@@ -69,5 +71,5 @@ func (ctrl *Control) postWorkflow(c *gin.Context) {
 func (ctrl *Control) Run() {
 	r := gin.Default()
 	r.POST("v1/workflow", ctrl.postWorkflow)
-	r.Run()
+	r.Run(ctrl.address)
 }
