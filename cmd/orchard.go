@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"mce.salesforce.com/sprinkler/service"
 )
 
@@ -16,7 +17,11 @@ type OrchardCmdOpt struct {
 	Address string
 }
 
-var orchardCmdOpt OrchardCmdOpt
+func getOrchardCmdOpt() OrchardCmdOpt {
+	return OrchardCmdOpt{
+		Address: viper.GetString("orchard.address"),
+	}
+}
 
 // orchardCmd represents the orchard command
 var orchardCmd = &cobra.Command{
@@ -25,6 +30,7 @@ var orchardCmd = &cobra.Command{
 	Long:  `Runs a fake orchard server for testing`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("orchard called")
+		orchardCmdOpt := getOrchardCmdOpt()
 		fo := service.NewFakeOrchard(orchardCmdOpt.Address)
 		fo.Run()
 	},
@@ -33,10 +39,10 @@ var orchardCmd = &cobra.Command{
 func init() {
 	serviceCmd.AddCommand(orchardCmd)
 
-	orchardCmd.Flags().StringVar(
-		&orchardCmdOpt.Address,
+	orchardCmd.Flags().String(
 		"address",
 		":8081",
 		"The address to listen to (e.g.: ':8081')",
 	)
+	viper.BindPFlag("orchard.address", orchardCmd.Flags().Lookup("address"))
 }
