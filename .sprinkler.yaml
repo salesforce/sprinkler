@@ -1,0 +1,11 @@
+---
+orchard:
+  address: ":8082"
+
+control:
+  address: ":8081"
+
+scheduler:
+  interval: "1s"
+  orchardAddress: "http://ws:8082"
+...

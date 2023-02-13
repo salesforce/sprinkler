@@ -26,7 +26,7 @@ var SampleWorkflows = []table.Workflow{
 		Artifact:    "", // empty string means local available
 		Command:     `["echo", "{\"name\": \"command1\"}"]`,
 		Every:       model.Every{1, model.EveryDay},
-		NextRuntime: time.Now(),
+		NextRuntime: time.Now().Add(-1 * time.Hour),
 		Backfill:    false,
 		Owner:       &owner,
 		IsActive:    true,

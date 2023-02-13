@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"mce.salesforce.com/sprinkler/service"
 )
 
@@ -18,7 +19,11 @@ type ControlCmdOpt struct {
 	Address string
 }
 
-var controlCmdOpt ControlCmdOpt
+func getControlCmdOpt() ControlCmdOpt {
+	return ControlCmdOpt{
+		Address: viper.GetString("control.address"),
+	}
+}
 
 // controlCmd represents the control command
 var controlCmd = &cobra.Command{
@@ -32,6 +37,7 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("control called")
+		controlCmdOpt := getControlCmdOpt()
 		ctrl := service.NewControl(controlCmdOpt.Address)
 		ctrl.Run()
 	},
@@ -40,5 +46,10 @@ to quickly create a Cobra application.`,
 func init() {
 	serviceCmd.AddCommand(controlCmd)
 
-	controlCmd.Flags().StringVar(&controlCmdOpt.Address, "address", ":8080", "The address to listen to (e.g.: ':8080')")
+	controlCmd.Flags().String(
+		"address",
+		":8080",
+		"The address to listen to (e.g.: ':8080')",
+	)
+	viper.BindPFlag("control.address", controlCmd.Flags().Lookup("address"))
 }
