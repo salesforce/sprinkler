@@ -16,12 +16,14 @@ import (
 var controlAddress string
 
 type ControlCmdOpt struct {
-	Address string
+	Address        string
+	TrustedProxies []string
 }
 
 func getControlCmdOpt() ControlCmdOpt {
 	return ControlCmdOpt{
-		Address: viper.GetString("control.address"),
+		Address:        viper.GetString("control.address"),
+		TrustedProxies: viper.GetStringSlice("control.trustedProxies"),
 	}
 }
 
@@ -38,7 +40,10 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("control called")
 		controlCmdOpt := getControlCmdOpt()
-		ctrl := service.NewControl(controlCmdOpt.Address)
+		ctrl := service.NewControl(
+			controlCmdOpt.Address,
+			controlCmdOpt.TrustedProxies,
+		)
 		ctrl.Run()
 	},
 }
@@ -52,4 +57,8 @@ func init() {
 		"The address to listen to (e.g.: ':8080')",
 	)
 	viper.BindPFlag("control.address", controlCmd.Flags().Lookup("address"))
+
+	controlCmd.Flags().StringSlice("trustedProxy", []string{}, "trusted proxies")
+	viper.BindPFlag("control.trustedProxies", controlCmd.Flags().Lookup("trustedProxy"))
+
 }
