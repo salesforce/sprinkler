@@ -3,7 +3,10 @@ orchard:
   address: ":8082"
 
 control:
-  address: ":8081"
+  address: ":8080"
+  trustedProxies:
+    - "0.0.0.0/0"
+    - "::/0"
 
 scheduler:
   interval: "1s"

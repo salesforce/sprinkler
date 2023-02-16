@@ -7,6 +7,7 @@ package service
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -18,8 +19,9 @@ import (
 )
 
 type Control struct {
-	db      *gorm.DB
-	address string
+	db             *gorm.DB
+	address        string
+	trustedProxies []string
 }
 
 type postWorkflowReq struct {
@@ -33,10 +35,11 @@ type postWorkflowReq struct {
 	IsActive    bool      `json:"isActive" binding:"required"`
 }
 
-func NewControl(address string) *Control {
+func NewControl(address string, trustedProxies []string) *Control {
 	return &Control{
-		db:      database.GetInstance(),
-		address: address,
+		db:             database.GetInstance(),
+		address:        address,
+		trustedProxies: trustedProxies,
 	}
 }
 
@@ -70,6 +73,20 @@ func (ctrl *Control) postWorkflow(c *gin.Context) {
 
 func (ctrl *Control) Run() {
 	r := gin.Default()
+
+	if err := r.SetTrustedProxies(ctrl.trustedProxies); err != nil {
+		log.Fatal(err)
+	}
+
 	r.POST("v1/workflow", ctrl.postWorkflow)
-	r.Run(ctrl.address)
+	r.GET("__status", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"clientIP": c.ClientIP(),
+			"status":   "ok",
+		})
+	})
+
+	if err := r.Run(ctrl.address); err != nil {
+		log.Fatal(err)
+	}
 }
