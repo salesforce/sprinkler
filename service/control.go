@@ -22,6 +22,7 @@ type Control struct {
 	db             *gorm.DB
 	address        string
 	trustedProxies []string
+	apiKey         string
 }
 
 type postWorkflowReq struct {
@@ -35,11 +36,12 @@ type postWorkflowReq struct {
 	IsActive    bool      `json:"isActive" binding:"required"`
 }
 
-func NewControl(address string, trustedProxies []string) *Control {
+func NewControl(address string, trustedProxies []string, apiKey string) *Control {
 	return &Control{
 		db:             database.GetInstance(),
 		address:        address,
 		trustedProxies: trustedProxies,
+		apiKey:         apiKey,
 	}
 }
 
@@ -71,6 +73,15 @@ func (ctrl *Control) postWorkflow(c *gin.Context) {
 	c.JSON(http.StatusOK, "OK")
 }
 
+func APIKeyAuth(key string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		k := c.GetHeader("x-api-key")
+		if k != key {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+	}
+}
+
 func (ctrl *Control) Run() {
 	r := gin.Default()
 
@@ -78,7 +89,12 @@ func (ctrl *Control) Run() {
 		log.Fatal(err)
 	}
 
-	r.POST("v1/workflow", ctrl.postWorkflow)
+	v1 := r.Group("/v1")
+	v1.Use(APIKeyAuth(ctrl.apiKey))
+	{
+		v1.POST("/workflow", ctrl.postWorkflow)
+	}
+
 	r.GET("__status", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"clientIP": c.ClientIP(),

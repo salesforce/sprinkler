@@ -18,12 +18,23 @@ var controlAddress string
 type ControlCmdOpt struct {
 	Address        string
 	TrustedProxies []string
+	APIKey         string
 }
+
+const (
+	CtrlFlagAPIKey         string = "apiKey"
+	CtrlConfigAPIKey              = "control.apiKey"
+	CtrlFlagTrustedProxy          = "trustedProxy"
+	CtrlConfigTrustedProxy        = "control.trustedProxies"
+	CtrlFlagAddress               = "address"
+	CtrlConfigAddress             = "control.address"
+)
 
 func getControlCmdOpt() ControlCmdOpt {
 	return ControlCmdOpt{
-		Address:        viper.GetString("control.address"),
-		TrustedProxies: viper.GetStringSlice("control.trustedProxies"),
+		Address:        viper.GetString(CtrlConfigAddress),
+		TrustedProxies: viper.GetStringSlice(CtrlConfigTrustedProxy),
+		APIKey:         viper.GetString(CtrlConfigAPIKey),
 	}
 }
 
@@ -43,6 +54,7 @@ to quickly create a Cobra application.`,
 		ctrl := service.NewControl(
 			controlCmdOpt.Address,
 			controlCmdOpt.TrustedProxies,
+			controlCmdOpt.APIKey,
 		)
 		ctrl.Run()
 	},
@@ -52,13 +64,16 @@ func init() {
 	serviceCmd.AddCommand(controlCmd)
 
 	controlCmd.Flags().String(
-		"address",
+		CtrlFlagAddress,
 		":8080",
 		"The address to listen to (e.g.: ':8080')",
 	)
-	viper.BindPFlag("control.address", controlCmd.Flags().Lookup("address"))
+	viper.BindPFlag(CtrlConfigAddress, controlCmd.Flags().Lookup(CtrlFlagAddress))
 
-	controlCmd.Flags().StringSlice("trustedProxy", []string{}, "trusted proxies")
-	viper.BindPFlag("control.trustedProxies", controlCmd.Flags().Lookup("trustedProxy"))
+	controlCmd.Flags().StringSlice(CtrlFlagTrustedProxy, []string{}, "trusted proxies")
+	viper.BindPFlag(CtrlConfigTrustedProxy, controlCmd.Flags().Lookup(CtrlFlagTrustedProxy))
+
+	controlCmd.Flags().String(CtrlFlagAPIKey, "", "api key")
+	viper.BindPFlag(CtrlConfigAPIKey, controlCmd.Flags().Lookup(CtrlFlagAPIKey))
 
 }
