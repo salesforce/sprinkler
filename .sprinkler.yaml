@@ -7,6 +7,7 @@ control:
   trustedProxies:
     - "0.0.0.0/0"
     - "::/0"
+  apiKey: "changeme"
 
 scheduler:
   interval: "1s"
