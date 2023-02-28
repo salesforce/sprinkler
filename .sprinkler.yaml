@@ -1,4 +1,11 @@
 ---
+db:
+  host: "db"
+  user: "postgres"
+  password: "sprinkler"
+  dbname: "postgres"
+  sslmode: "disable"
+
 orchard:
   address: ":8082"
 
