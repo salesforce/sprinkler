@@ -17,7 +17,7 @@ var withSample = false
 var initializeCmd = &cobra.Command{
 	Use:   "initialize",
 	Short: "Initialize the database tables",
-	Long:  `Initialize the database tables`,
+	Long:  `Create and setup all tables for sprinkler.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		initializeDatabase()
 	},
@@ -37,13 +37,6 @@ func initializeDatabase() {
 func init() {
 	databaseCmd.AddCommand(initializeCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// initializeCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	initializeCmd.Flags().BoolVar(&withSample, "with-sample", false, "With Sample Data")
+	initializeCmd.Flags().BoolVar(
+		&withSample, "with-sample", false, "With Sample Data")
 }
