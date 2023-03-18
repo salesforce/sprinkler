@@ -37,8 +37,16 @@ func (dsn *Dsn) stringify() string {
 var once sync.Once
 var sprinklerDB *gorm.DB
 
-func (dsn *Dsn) GetInstance() *gorm.DB {
+func GetInstance() *gorm.DB {
 	once.Do(func() {
+		dsn := &Dsn{
+			Host:     viper.GetString("db.host"),
+			User:     viper.GetString("db.user"),
+			Password: viper.GetString("db.password"),
+			DBName:   viper.GetString("db.dbname"),
+			SSLMode:  viper.GetString("db.sslmode"),
+		}
+
 		db, err := gorm.Open(postgres.Open(dsn.stringify()), &gorm.Config{})
 		if err != nil {
 			panic("failed to connect database")
@@ -46,15 +54,4 @@ func (dsn *Dsn) GetInstance() *gorm.DB {
 		sprinklerDB = db
 	})
 	return sprinklerDB
-}
-
-func GetInstance() *gorm.DB {
-	dsn := &Dsn{
-		Host:     viper.GetString("db.host"),
-		User:     viper.GetString("db.user"),
-		Password: viper.GetString("db.password"),
-		DBName:   viper.GetString("db.dbname"),
-		SSLMode:  viper.GetString("db.sslmode"),
-	}
-	return dsn.GetInstance()
 }
