@@ -1,4 +1,4 @@
-package object_store
+package common
 
 import (
 	"context"
@@ -21,14 +21,15 @@ type BucketBasics struct {
 	S3Client *s3.Client
 }
 
-func DefaultS3Client() *s3.Client {
+func DefaultS3Client() (*s3.Client, error) {
 	sdkConfig, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		fmt.Println("Couldn't load default configuration. Have you set up your AWS account?")
 		fmt.Println(err)
+		return nil, err
 	}
 	s3Client := s3.NewFromConfig(sdkConfig)
-	return s3Client
+	return s3Client, nil
 }
 
 // ListBuckets lists the buckets in the current account.
