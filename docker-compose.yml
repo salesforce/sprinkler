@@ -1,6 +1,6 @@
 services:
   ws:
-    image: sprinkler
+    build: .
     working_dir: /sprinkler
     volumes:
       - ./:/sprinkler

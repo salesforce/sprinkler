@@ -2,7 +2,6 @@ package common
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -24,8 +23,8 @@ type BucketBasics struct {
 func DefaultS3Client() (*s3.Client, error) {
 	sdkConfig, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		fmt.Println("Couldn't load default configuration. Have you set up your AWS account?")
-		fmt.Println(err)
+		log.Printf("Couldn't load default configuration. Have you set up your AWS account?\n")
+		log.Printf("err is %v", err)
 		return nil, err
 	}
 	s3Client := s3.NewFromConfig(sdkConfig)
