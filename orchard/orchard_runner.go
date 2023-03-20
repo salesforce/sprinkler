@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os/exec"
-	"regexp"
 )
 
 type OrchardRunner interface {
@@ -37,18 +36,4 @@ func parseCommandLine(command string) ([]string, error) {
 	var output []string
 	err := json.Unmarshal([]byte(command), &output)
 	return output, err
-}
-
-// parse artifact expecting a s3 URI to return the bucket and path
-func (c OrchardStdoutRunner) ParseArtifact(artifact string) (string, string, error) {
-	r, err := regexp.Compile(`^s3://([^ /]+)/([^ ]+)$`)
-	if err != nil {
-		return "", "", err
-	}
-	res := r.FindStringSubmatch(artifact)
-	if len(res) == 3 {
-		return res[1], res[2], nil
-	} else {
-		return "", "", fmt.Errorf("failed to parse s3 with bucket and path for %s", artifact)
-	}
 }
