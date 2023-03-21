@@ -1,6 +1,6 @@
 services:
   ws:
-    image: golang
+    build: .
     working_dir: /sprinkler
     volumes:
       - ./:/sprinkler

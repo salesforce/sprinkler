@@ -1,0 +1,189 @@
+{
+    "name" : "com.salesforce.mce.spade.examples.ExampleWorkflow",
+    "activities" : [
+      {
+        "id" : "8adf4b30-8593-4da1-8ea5-ffc66bc46811",
+        "name" : "ShellCommandActivity-8adf4b30-8593-4da1-8ea5-ffc66bc46811",
+        "activityType" : "aws.activity.ShellCommandActivity",
+        "activitySpec" : {
+          "lines" : [
+            "hello"
+          ],
+          "outputUri" : null,
+          "executionTimeout" : null,
+          "deliveryTimeout" : null
+        },
+        "resourceId" : "35102778-8960-49d5-96b2-3c7be1d8200b",
+        "maxAttempt" : 3,
+        "onSuccess" : [
+          "SnsAlarm-04bab8da-f7bd-4dfb-a51b-81949f450795"
+        ],
+        "onFailure" : null
+      },
+      {
+        "id" : "3ed613f4-b399-43ec-9e6d-dd46db924929",
+        "name" : "EmrActivity-3ed613f4-b399-43ec-9e6d-dd46db924929",
+        "activityType" : "aws.activity.EmrActivity",
+        "activitySpec" : {
+          "steps" : [
+            {
+              "jar" : "s3://somebucket/some.jar",
+              "args" : [
+              ]
+            }
+          ]
+        },
+        "resourceId" : "420bc82e-ea1d-4fb6-8c0b-319817a2f6b5",
+        "maxAttempt" : 3,
+        "onSuccess" : [
+          "SnsAlarm-04bab8da-f7bd-4dfb-a51b-81949f450795"
+        ],
+        "onFailure" : null
+      },
+      {
+        "id" : "9d0db39a-8485-458f-a0e0-a3116c72ce4d",
+        "name" : "DummyActivity-9d0db39a-8485-458f-a0e0-a3116c72ce4d",
+        "activityType" : "v.DummyActivity",
+        "activitySpec" : {
+          "sleepSeconds" : 30
+        },
+        "resourceId" : "00693629-df3d-486d-bef8-75de88a44147",
+        "maxAttempt" : 3,
+        "onSuccess" : null,
+        "onFailure" : [
+          "SnsAlarm-e38d5270-07e3-4746-9a18-72883b8e8f6a"
+        ]
+      },
+      {
+        "id" : "1dfba7ce-ec79-4e00-920e-f598d3d303b6",
+        "name" : "EmrActivity-1dfba7ce-ec79-4e00-920e-f598d3d303b6",
+        "activityType" : "aws.activity.EmrActivity",
+        "activitySpec" : {
+          "steps" : [
+            {
+              "jar" : "s3://somebucket/some.jar",
+              "args" : [
+              ]
+            }
+          ]
+        },
+        "resourceId" : "420bc82e-ea1d-4fb6-8c0b-319817a2f6b5",
+        "maxAttempt" : 3,
+        "onSuccess" : null,
+        "onFailure" : [
+          "SnsAlarm-e38d5270-07e3-4746-9a18-72883b8e8f6a"
+        ]
+      },
+      {
+        "id" : "480ce8d7-d0dd-4e1a-b7d1-accb9d7c0855",
+        "name" : "ShellScriptActivity-480ce8d7-d0dd-4e1a-b7d1-accb9d7c0855",
+        "activityType" : "aws.activity.ShellScriptActivity",
+        "activitySpec" : {
+          "scriptLocation" : "s3://somebucket/script.sh",
+          "args" : [
+          ],
+          "outputUri" : null,
+          "executionTimeout" : null,
+          "deliveryTimeout" : null
+        },
+        "resourceId" : "35102778-8960-49d5-96b2-3c7be1d8200b",
+        "maxAttempt" : 3,
+        "onSuccess" : null,
+        "onFailure" : [
+          "SnsAlarm-e38d5270-07e3-4746-9a18-72883b8e8f6a"
+        ]
+      }
+    ],
+    "resources" : [
+      {
+        "id" : "35102778-8960-49d5-96b2-3c7be1d8200b",
+        "name" : "Ec2Instance-35102778-8960-49d5-96b2-3c7be1d8200b",
+        "resourceType" : "aws.resource.Ec2Resource",
+        "resourceSpec" : {
+          "amiImageId" : "${?SPADE_AWS_AMI_IMAGE_ID}",
+          "subnetId" : "${?SPADE_AWS_SUBNET_ID}",
+          "instanceType" : "m4.large",
+          "instanceProfile" : "${?SPADE_AWS_INSTANCE_PROFILE}",
+          "securityGroups" : null,
+          "tags" : [
+          ],
+          "spotInstance" : false
+        },
+        "maxAttempt" : 3,
+        "terminateAfter" : null
+      },
+      {
+        "id" : "420bc82e-ea1d-4fb6-8c0b-319817a2f6b5",
+        "name" : "EmrCluster-420bc82e-ea1d-4fb6-8c0b-319817a2f6b5",
+        "resourceType" : "aws.resource.EmrResource",
+        "resourceSpec" : {
+          "releaseLabel" : "emr-6.7.0",
+          "applications" : [
+          ],
+          "serviceRole" : "EMR_DefaultRole",
+          "resourceRole" : "EMR_EC2_DefaultRole",
+          "tags" : [
+          ],
+          "bootstrapActions" : null,
+          "configurations" : null,
+          "instancesConfig" : {
+            "subnetId" : "${?SPADE_AWS_SUBNET_ID}",
+            "instanceCount" : 2,
+            "masterInstanceType" : "m6g.xlarge",
+            "slaveInstanceType" : "m6g.xlarge",
+            "ec2KeyName" : "orchard",
+            "additionalMasterSecurityGroups" : null,
+            "additionalSlaveSecurityGroups" : null
+          }
+        },
+        "maxAttempt" : 3,
+        "terminateAfter" : null
+      },
+      {
+        "id" : "00693629-df3d-486d-bef8-75de88a44147",
+        "name" : "DummyResource-00693629-df3d-486d-bef8-75de88a44147",
+        "resourceType" : "v.DummyResource",
+        "resourceSpec" : {
+          "initSeconds" : 10
+        },
+        "maxAttempt" : 3,
+        "terminateAfter" : null
+      }
+    ],
+    "dependencies" : {
+      "480ce8d7-d0dd-4e1a-b7d1-accb9d7c0855" : [
+        "3ed613f4-b399-43ec-9e6d-dd46db924929"
+      ],
+      "3ed613f4-b399-43ec-9e6d-dd46db924929" : [
+        "1dfba7ce-ec79-4e00-920e-f598d3d303b6"
+      ],
+      "9d0db39a-8485-458f-a0e0-a3116c72ce4d" : [
+        "8adf4b30-8593-4da1-8ea5-ffc66bc46811"
+      ],
+      "8adf4b30-8593-4da1-8ea5-ffc66bc46811" : [
+        "480ce8d7-d0dd-4e1a-b7d1-accb9d7c0855"
+      ]
+    },
+    "actions" : [
+      {
+        "id" : "SnsAlarm-04bab8da-f7bd-4dfb-a51b-81949f450795",
+        "name" : "name",
+        "actionType" : "aws.action.SnsAlarm",
+        "actionSpec" : {
+          "topicArn" : "topic",
+          "subject" : "Success Alarm",
+          "message" : "success"
+        }
+      },
+      {
+        "id" : "SnsAlarm-e38d5270-07e3-4746-9a18-72883b8e8f6a",
+        "name" : "name",
+        "actionType" : "aws.action.SnsAlarm",
+        "actionSpec" : {
+          "topicArn" : "topic",
+          "subject" : "Failure Alarm",
+          "message" : "failed"
+        }
+      }
+    ]
+  }

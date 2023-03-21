@@ -31,9 +31,9 @@ type postWorkflowReq struct {
 	Command     string    `json:"command" binding:"required"`
 	Every       string    `json:"every" binding:"required"`
 	NextRuntime time.Time `json:"nextRuntime" binding:"required"`
-	Backfill    bool      `json:"backfill" binding:"required"`
+	Backfill    bool      `json:"backfill"` // default false if absent
 	Owner       *string   `json:"owner"`
-	IsActive    bool      `json:"isActive" binding:"required"`
+	IsActive    bool      `json:"isActive"` // default false if absent
 }
 
 func NewControl(address string, trustedProxies []string, apiKey string) *Control {
