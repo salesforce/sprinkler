@@ -24,11 +24,12 @@ type OrchardClient interface {
 }
 
 type OrchardRestClient struct {
-	Host string
+	Host   string
+	Runner OrchardRunner
 }
 
 func (c OrchardRestClient) Create(wf table.Workflow) (string, error) {
-	runner := OrchardStdoutRunner{}
+	runner := c.Runner
 	result, err := runner.Generate(wf.Artifact, wf.Command)
 	if err != nil {
 		return "", err
@@ -73,10 +74,11 @@ func (c OrchardRestClient) Activate(orchardID string) error {
 }
 
 type FakeOrchardClient struct {
+	Runner OrchardRunner
 }
 
 func (c FakeOrchardClient) Create(wf table.Workflow) (string, error) {
-	runner := OrchardStdoutRunner{}
+	runner := c.Runner
 	result, err := runner.Generate(wf.Artifact, wf.Command)
 	if err != nil {
 		return "", err

@@ -12,12 +12,12 @@ import (
 )
 
 type OrchardRunner interface {
-	Generate(artifact string, command string) string
+	Generate(artifact string, command string) (string, error)
 }
 
 type OrchardStdoutRunner struct{}
 
-func (self OrchardStdoutRunner) Generate(artifact string, command string) (string, error) {
+func (r OrchardStdoutRunner) Generate(artifact string, command string) (string, error) {
 	cmds, err := parseCommandLine(command)
 	if err != nil {
 		return "", err

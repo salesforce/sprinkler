@@ -26,7 +26,7 @@ type WorkflowStatus struct {
 }
 
 type orchardWorkflow struct {
-	name string `json:"name"`
+	Name string `json:"name"`
 }
 
 func NewFakeOrchard(address string) *FakeOrchard {
@@ -46,7 +46,7 @@ func (o *FakeOrchard) postWorkflow(c *gin.Context) {
 
 	orchardId := fmt.Sprintf("wf-%s", uuid.New().String())
 	o.Workflows[orchardId] = WorkflowStatus{
-		name:   workflow.name,
+		name:   workflow.Name,
 		status: "pending",
 	}
 	c.JSON(http.StatusOK, orchardId)
