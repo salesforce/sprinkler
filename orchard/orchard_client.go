@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"time"
@@ -41,9 +41,9 @@ func (c OrchardRestClient) Create(wf table.Workflow) (string, error) {
 	}
 	defer rsp.Body.Close()
 	if rsp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("Invalid http code %d", rsp.StatusCode)
+		return "", fmt.Errorf("invalid http code %d", rsp.StatusCode)
 	}
-	rawJson, err := ioutil.ReadAll(rsp.Body)
+	rawJson, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return "", err
 	}
@@ -68,7 +68,7 @@ func (c OrchardRestClient) Activate(orchardID string) error {
 	}
 	defer rsp.Body.Close()
 	if rsp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Invalid http code %d", rsp.StatusCode)
+		return fmt.Errorf("invalid http code %d", rsp.StatusCode)
 	}
 	return nil
 }

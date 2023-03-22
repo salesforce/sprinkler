@@ -26,7 +26,7 @@ type Scheduler struct {
 func (s *Scheduler) Start() {
 	fmt.Println("Scheduler Started")
 	tick := time.Tick(s.Interval)
-	for _ = range tick {
+	for range tick {
 		fmt.Println("tick")
 		s.scheduleWorkflows(database.GetInstance())
 	}
@@ -56,7 +56,7 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 	}
 	result := db.Create(&lock)
 	if result.Error != nil {
-		fmt.Printf("something else is running this workflow %s! skip...\n", wf.ID)
+		fmt.Printf("something else is running this workflow %v! skip...\n", wf.ID)
 		return
 	}
 
@@ -64,7 +64,7 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 	db.First(&existingLock, wf.ID)
 
 	if existingLock.Token != token {
-		fmt.Println("something else is running this workflow %s! skip...", wf.ID)
+		fmt.Printf("something else is running this workflow %v! skip...\n", wf.ID)
 		return
 	}
 
@@ -137,5 +137,4 @@ func addInterval(someTime time.Time, every model.Every) time.Time {
 		return someTime.AddDate(int(every.Quantity), 0, 0)
 	}
 	panic("wrong")
-	return someTime
 }
