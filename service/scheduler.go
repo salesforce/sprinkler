@@ -71,7 +71,7 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 	fmt.Println("running workflow", wf.Name, token)
 	client := &orchard.OrchardRestClient{
 		Host:   s.OrchardHost,
-		Runner: orchard.OrchardJavaRunner{},
+		Runner: orchard.OrchardStdoutRunner{},
 	}
 	orchardID, err := client.Create(wf)
 	if err != nil {
