@@ -31,6 +31,7 @@ func (c OrchardRestClient) Create(wf table.Workflow) (string, error) {
 	runner := OrchardStdoutRunner{}
 	result, err := runner.Generate(wf.Artifact, wf.Command)
 	if err != nil {
+		log.Printf("OrchardRestClient Create > Generate error: %v\n", err)
 		return "", err
 	}
 	url := fmt.Sprintf("%s/v1/workflow", c.Host)

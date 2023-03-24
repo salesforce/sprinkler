@@ -32,12 +32,18 @@ func (r OrchardStdoutRunner) Generate(artifact string, command string) (string, 
 
 	// download s3 artifact as local file
 	s3c, err := common.DefaultS3Client()
+	if err != nil {
+		return "", err
+	}
 	bb := common.S3Basics{S3Client: s3c}
 	s3bucketPath, err := bb.GetBucketPath(artifact)
-	localFile, err := bb.GetLastSegment(s3bucketPath.Path)
+	if err != nil {
+		return "", err
+	}
+	localFile := s3bucketPath.Path
 	err = bb.DownloadFile(s3bucketPath.Bucket, s3bucketPath.Path, localFile)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	// clean up downloaded jar file

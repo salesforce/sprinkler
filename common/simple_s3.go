@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -65,6 +66,9 @@ func (b S3Basics) DownloadFile(bucketName string, objectKey string, fileName str
 		return err
 	}
 	defer result.Body.Close()
+	if err = os.MkdirAll(filepath.Dir(fileName), 0770); err != nil {
+		return err
+	}
 	file, err := os.Create(fileName)
 	if err != nil {
 		log.Printf("Couldn't create file %v. Here's why: %v\n", fileName, err)
