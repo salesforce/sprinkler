@@ -9,11 +9,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 
+	"github.com/google/uuid"
 	"mce.salesforce.com/sprinkler/common"
 )
+
+const baseDir string = "/sprinkler"
 
 type OrchardRunner interface {
 	Generate(artifact string, command string) (string, error)
@@ -23,53 +27,81 @@ type OrchardStdoutRunner struct{}
 
 func (r OrchardStdoutRunner) Generate(artifact string, command string) (string, error) {
 	if artifact == "" {
-		return processCmd(command)
+		return processCmd(command, baseDir)
 	}
 
 	if !strings.HasPrefix(artifact, "s3://") {
 		return "", fmt.Errorf("artifact %v is not supported\n", artifact)
 	}
 
-	// download s3 artifact as local file
+	return s3ArtifactGenerate(artifact, command)
+}
+
+func s3ArtifactGenerate(artifact string, command string) (string, error) {
+
+	err := os.Chdir(baseDir)
+	if err != nil {
+		log.Printf("reset directory back to %v error:%v\n", baseDir, err)
+	}
+
+	// tmp directory to avoid threads race on downloaded artifact
+	tmpDir := uuid.NewString()
+	err = os.Mkdir(tmpDir, 0777)
+	if err != nil {
+		return "", fmt.Errorf("problem creating a tmp directory: %w", err)
+	}
+
+	// download s3 artifact as local file in tmp directory
 	s3c, err := common.DefaultS3Client()
 	if err != nil {
 		return "", err
 	}
-	bb := common.S3Basics{S3Client: s3c}
-	s3bucketPath, err := bb.GetBucketPath(artifact)
+	s3 := common.S3Basics{S3Client: s3c}
+	s3bucketPath, err := s3.GetBucketPath(artifact)
 	if err != nil {
 		return "", err
 	}
-	localFile := s3bucketPath.Path
-	err = bb.DownloadFile(s3bucketPath.Bucket, s3bucketPath.Path, localFile)
+	localFile, err := s3.GetLastSegment(s3bucketPath.Path)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("problem extracting filename from artifact path: %w", err)
 	}
+	localFile = tmpDir + "/" + localFile
+	err = s3.DownloadFile(s3bucketPath.Bucket, s3bucketPath.Path, localFile)
+	if err != nil {
+		return "", fmt.Errorf("problem downloading s3 artifact %v to %v: %w", s3bucketPath.Path, localFile, err)
+	}
+	log.Printf("downloaded %v\n", localFile)
 
 	// clean up downloaded jar file
-	defer func() {
-		_, err2 := exec.Command("rm", localFile).Output()
-		if err2 != nil {
-			log.Println("local jar cleanup error:", err2)
+	defer func(tmpDir string) {
+		if err2 := os.Chdir(baseDir); err2 != nil {
+			log.Printf("cleanup process, cd %v error:%v\n", baseDir, err2)
 		} else {
-			log.Println("removed downloaded local file:", localFile)
+			if err2 := os.RemoveAll(tmpDir); err2 != nil {
+				log.Printf("local downloaded artifact cleanup error:%v\n", err2)
+			} else {
+				log.Printf("finished cleanup downloaded file %v\n", localFile)
+			}
 		}
-	}()
+	}(tmpDir)
 
-	return processCmd(command)
+	return processCmd(command, tmpDir)
 }
 
-func processCmd(command string) (string, error) {
+func processCmd(command string, pwd string) (string, error) {
+	if err := os.Chdir(pwd); err != nil {
+		return "", fmt.Errorf("cd %v has error:%w", pwd, err)
+	}
 	cmds, err := parseCommandLine(command)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("parse command line error%w", err)
 	}
 	if len(cmds) < 1 {
 		return "", fmt.Errorf("Invalid command line %s", command)
 	}
 	out, err := exec.Command(cmds[0], cmds[1:]...).Output()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("exec command %v has error:%w", command, err)
 	}
 	return string(out), nil
 }
