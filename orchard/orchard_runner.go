@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/google/uuid"
 	"mce.salesforce.com/sprinkler/common"
 )
 
@@ -45,8 +44,7 @@ func s3ArtifactGenerate(artifact string, command string) (string, error) {
 	}
 
 	// tmp directory to avoid threads race on downloaded artifact
-	tmpDir := uuid.NewString()
-	err = os.Mkdir(tmpDir, 0777)
+	tmpDir, err := os.MkdirTemp("", "*")
 	if err != nil {
 		return "", fmt.Errorf("problem creating a tmp directory: %w", err)
 	}
@@ -74,7 +72,7 @@ func s3ArtifactGenerate(artifact string, command string) (string, error) {
 
 	// clean up downloaded jar file
 	defer func(tmpDir string) {
-		if err2 := os.Chdir(baseDir); err2 != nil {
+		if err2 := os.Chdir("/"); err2 != nil {
 			log.Printf("cleanup process, cd %v error:%v\n", baseDir, err2)
 		} else {
 			if err2 := os.RemoveAll(tmpDir); err2 != nil {
