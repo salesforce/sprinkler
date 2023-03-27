@@ -2,9 +2,12 @@ package common
 
 import (
 	"context"
+	"fmt"
 	"io"
-	"log"
 	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -12,73 +15,95 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
-// BucketBasics encapsulates the Amazon Simple Storage Service (Amazon S3) actions
+// S3Basics encapsulates the Amazon Simple Storage Service (Amazon S3) actions
 // used in the examples.
 // It contains S3Client, an Amazon S3 service client that is used to perform bucket
 // and object actions.
-type BucketBasics struct {
+type S3Basics struct {
 	S3Client *s3.Client
+}
+
+type S3BucketPath struct {
+	Bucket string
+	Path   string
 }
 
 func DefaultS3Client() (*s3.Client, error) {
 	sdkConfig, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		log.Printf("Couldn't load default configuration. Have you set up your AWS account?\n")
-		log.Printf("err is %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Couldn't load default configuration; check AWS account setup. Error: %w\n", err)
 	}
 	s3Client := s3.NewFromConfig(sdkConfig)
 	return s3Client, nil
 }
 
-// ListBuckets lists the buckets in the current account.
-func (basics BucketBasics) ListBuckets() ([]types.Bucket, error) {
-	result, err := basics.S3Client.ListBuckets(context.TODO(), &s3.ListBucketsInput{})
-	var buckets []types.Bucket
-	if err != nil {
-		log.Printf("Couldn't list buckets for your account. Here's why: %v\n", err)
-	} else {
-		buckets = result.Buckets
-	}
-	return buckets, err
-}
-
 // ListObjects lists the objects in a bucket.
-func (basics BucketBasics) ListObjects(bucketName string, prefix string) ([]types.Object, error) {
-	result, err := basics.S3Client.ListObjectsV2(context.TODO(), &s3.ListObjectsV2Input{
+func (b S3Basics) ListObjects(bucketName string, prefix string) ([]types.Object, error) {
+	result, err := b.S3Client.ListObjectsV2(context.TODO(), &s3.ListObjectsV2Input{
 		Bucket: aws.String(bucketName),
 		Prefix: aws.String(prefix),
 	})
 	var contents []types.Object
 	if err != nil {
-		log.Printf("Couldn't list objects in bucket %v. Here's why: %v\n", bucketName, err)
-	} else {
-		contents = result.Contents
+		return contents, fmt.Errorf("Couldn't list objects in bucket %v. Error: %v\n", bucketName, err)
 	}
-	return contents, err
+	contents = result.Contents
+	return contents, nil
 }
 
 // DownloadFile gets an object from a bucket and stores it in a local file.
-func (basics BucketBasics) DownloadFile(bucketName string, objectKey string, fileName string) error {
-	result, err := basics.S3Client.GetObject(context.TODO(), &s3.GetObjectInput{
+func (b S3Basics) DownloadFile(bucketName string, objectKey string, fileName string) error {
+	result, err := b.S3Client.GetObject(context.TODO(), &s3.GetObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(objectKey),
 	})
 	if err != nil {
-		log.Printf("Couldn't get object %v:%v. Here's why: %v\n", bucketName, objectKey, err)
-		return err
+		return fmt.Errorf("Couldn't get object %v:%v. Error:%w\n", bucketName, objectKey, err)
 	}
 	defer result.Body.Close()
+	if err = os.MkdirAll(filepath.Dir(fileName), 0770); err != nil {
+		return err
+	}
 	file, err := os.Create(fileName)
 	if err != nil {
-		log.Printf("Couldn't create file %v. Here's why: %v\n", fileName, err)
-		return err
+		return fmt.Errorf("Couldn't create file %v. Error: %w\n", fileName, err)
 	}
 	defer file.Close()
 	body, err := io.ReadAll(result.Body)
 	if err != nil {
-		log.Printf("Couldn't read object body from %v. Here's why: %v\n", objectKey, err)
+		return fmt.Errorf("Couldn't read object body from %v. Error: %w\n", objectKey, err)
 	}
 	_, err = file.Write(body)
-	return err
+	if err != nil {
+		return fmt.Errorf("Couldn't write file %v. Error: %w\n", fileName, err)
+	}
+	return nil
+}
+
+// parse S3 url to get bucket and path
+func (b S3Basics) GetBucketPath(s3Url string) (S3BucketPath, error) {
+	patt, err := regexp.Compile(`^s3://([^ /]+)/([^ ]+)$`)
+	if err != nil {
+		return S3BucketPath{"", ""}, fmt.Errorf("regex with s3Url %v. Error: %w\n", s3Url, err)
+	}
+	res := patt.FindStringSubmatch(s3Url)
+	if len(res) != 3 {
+		return S3BucketPath{"", ""}, fmt.Errorf("s3Url parsing failed: %v\n", s3Url)
+	}
+	return S3BucketPath{res[1], res[2]}, nil
+}
+
+func (b S3Basics) GetLastSegment(path string) (string, error) {
+	if !strings.Contains(path, "/") {
+		return path, nil
+	}
+	p, err := regexp.Compile(`^.*\/([^ ]+)$`)
+	if err != nil {
+		return "", fmt.Errorf("regex with path %v. Error: %w\n", path, err)
+	}
+	res := p.FindStringSubmatch(path)
+	if len(res) != 2 {
+		return "", fmt.Errorf("s3 path parse failed: %v\n", path)
+	}
+	return res[1], nil
 }
