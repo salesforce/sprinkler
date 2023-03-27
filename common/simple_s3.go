@@ -31,7 +31,7 @@ type S3BucketPath struct {
 func DefaultS3Client() (*s3.Client, error) {
 	sdkConfig, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		return nil, fmt.Errorf("Couldn't load default configuration; check AWS account setup.  Error: %w\n", err)
+		return nil, fmt.Errorf("Couldn't load default configuration; check AWS account setup. Error: %w\n", err)
 	}
 	s3Client := s3.NewFromConfig(sdkConfig)
 	return s3Client, nil
@@ -58,7 +58,7 @@ func (b S3Basics) DownloadFile(bucketName string, objectKey string, fileName str
 		Key:    aws.String(objectKey),
 	})
 	if err != nil {
-		return fmt.Errorf("Couldn't get object %v:%v.  Error:%w\n", bucketName, objectKey, err)
+		return fmt.Errorf("Couldn't get object %v:%v. Error:%w\n", bucketName, objectKey, err)
 	}
 	defer result.Body.Close()
 	if err = os.MkdirAll(filepath.Dir(fileName), 0770); err != nil {
@@ -75,7 +75,7 @@ func (b S3Basics) DownloadFile(bucketName string, objectKey string, fileName str
 	}
 	_, err = file.Write(body)
 	if err != nil {
-		return fmt.Errorf("Couldn't write file.  Error: %w\n", err)
+		return fmt.Errorf("Couldn't write file %v. Error: %w\n", fileName, err)
 	}
 	return nil
 }
@@ -84,11 +84,11 @@ func (b S3Basics) DownloadFile(bucketName string, objectKey string, fileName str
 func (b S3Basics) GetBucketPath(s3Url string) (S3BucketPath, error) {
 	patt, err := regexp.Compile(`^s3://([^ /]+)/([^ ]+)$`)
 	if err != nil {
-		return S3BucketPath{"", ""}, fmt.Errorf("regex with s3Url %v.  Error: %w\n", s3Url, err)
+		return S3BucketPath{"", ""}, fmt.Errorf("regex with s3Url %v. Error: %w\n", s3Url, err)
 	}
 	res := patt.FindStringSubmatch(s3Url)
 	if len(res) != 3 {
-		return S3BucketPath{"", ""}, fmt.Errorf("artifact parsing failed")
+		return S3BucketPath{"", ""}, fmt.Errorf("s3Url parsing failed: %v\n", s3Url)
 	}
 	return S3BucketPath{res[1], res[2]}, nil
 }
@@ -103,7 +103,7 @@ func (b S3Basics) GetLastSegment(path string) (string, error) {
 	}
 	res := p.FindStringSubmatch(path)
 	if len(res) != 2 {
-		return "", fmt.Errorf("s3 path parse failed:%v", path)
+		return "", fmt.Errorf("s3 path parse failed: %v\n", path)
 	}
 	return res[1], nil
 }
