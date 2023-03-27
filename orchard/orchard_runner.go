@@ -39,7 +39,7 @@ func (r OrchardStdoutRunner) Generate(artifact string, command string) (string, 
 func s3ArtifactGenerate(artifact string, command string) (string, error) {
 
 	// tmp directory to avoid threads race on downloaded artifact
-	tmpDir, err := os.MkdirTemp("", "*")
+	tmpDir, err := os.MkdirTemp("", "sprinkler-")
 	if err != nil {
 		return "", fmt.Errorf("problem creating a tmp directory: %w", err)
 	}
