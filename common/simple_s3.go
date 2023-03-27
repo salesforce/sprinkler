@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -32,9 +31,7 @@ type S3BucketPath struct {
 func DefaultS3Client() (*s3.Client, error) {
 	sdkConfig, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
-		log.Printf("Couldn't load default configuration. Have you set up your AWS account?\n")
-		log.Printf("err is %v", err)
-		return nil, err
+		return nil, fmt.Errorf("Couldn't load default configuration; check AWS account setup.  Error: %w\n", err)
 	}
 	s3Client := s3.NewFromConfig(sdkConfig)
 	return s3Client, nil
@@ -48,11 +45,10 @@ func (b S3Basics) ListObjects(bucketName string, prefix string) ([]types.Object,
 	})
 	var contents []types.Object
 	if err != nil {
-		log.Printf("Couldn't list objects in bucket %v. Here's why: %v\n", bucketName, err)
-	} else {
-		contents = result.Contents
+		return contents, fmt.Errorf("Couldn't list objects in bucket %v. Error: %v\n", bucketName, err)
 	}
-	return contents, err
+	contents = result.Contents
+	return contents, nil
 }
 
 // DownloadFile gets an object from a bucket and stores it in a local file.
@@ -62,8 +58,7 @@ func (b S3Basics) DownloadFile(bucketName string, objectKey string, fileName str
 		Key:    aws.String(objectKey),
 	})
 	if err != nil {
-		log.Printf("Couldn't get object %v:%v. Here's why: %v\n", bucketName, objectKey, err)
-		return err
+		return fmt.Errorf("Couldn't get object %v:%v.  Error:%w\n", bucketName, objectKey, err)
 	}
 	defer result.Body.Close()
 	if err = os.MkdirAll(filepath.Dir(fileName), 0770); err != nil {
@@ -71,29 +66,31 @@ func (b S3Basics) DownloadFile(bucketName string, objectKey string, fileName str
 	}
 	file, err := os.Create(fileName)
 	if err != nil {
-		log.Printf("Couldn't create file %v. Here's why: %v\n", fileName, err)
-		return err
+		return fmt.Errorf("Couldn't create file %v. Error: %w\n", fileName, err)
 	}
 	defer file.Close()
 	body, err := io.ReadAll(result.Body)
 	if err != nil {
-		log.Printf("Couldn't read object body from %v. Here's why: %v\n", objectKey, err)
+		return fmt.Errorf("Couldn't read object body from %v. Error: %w\n", objectKey, err)
 	}
 	_, err = file.Write(body)
-	return err
+	if err != nil {
+		return fmt.Errorf("Couldn't write file.  Error: %w\n", err)
+	}
+	return nil
 }
 
 // parse S3 url to get bucket and path
 func (b S3Basics) GetBucketPath(s3Url string) (S3BucketPath, error) {
-	aPatt, err := regexp.Compile(`^s3://([^ /]+)/([^ ]+)$`)
+	patt, err := regexp.Compile(`^s3://([^ /]+)/([^ ]+)$`)
 	if err != nil {
-		return S3BucketPath{"", ""}, err
+		return S3BucketPath{"", ""}, fmt.Errorf("regex with s3Url %v.  Error: %w\n", s3Url, err)
 	}
-	aRes := aPatt.FindStringSubmatch(s3Url)
-	if len(aRes) != 3 {
+	res := patt.FindStringSubmatch(s3Url)
+	if len(res) != 3 {
 		return S3BucketPath{"", ""}, fmt.Errorf("artifact parsing failed")
 	}
-	return S3BucketPath{aRes[1], aRes[2]}, nil
+	return S3BucketPath{res[1], res[2]}, nil
 }
 
 func (b S3Basics) GetLastSegment(path string) (string, error) {
@@ -102,7 +99,7 @@ func (b S3Basics) GetLastSegment(path string) (string, error) {
 	}
 	p, err := regexp.Compile(`^.*\/([^ ]+)$`)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("regex with path %v. Error: %w\n", path, err)
 	}
 	res := p.FindStringSubmatch(path)
 	if len(res) != 2 {
