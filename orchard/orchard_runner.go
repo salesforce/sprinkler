@@ -38,11 +38,6 @@ func (r OrchardStdoutRunner) Generate(artifact string, command string) (string, 
 
 func s3ArtifactGenerate(artifact string, command string) (string, error) {
 
-	err := os.Chdir(baseDir)
-	if err != nil {
-		log.Printf("reset directory back to %v error:%v\n", baseDir, err)
-	}
-
 	// tmp directory to avoid threads race on downloaded artifact
 	tmpDir, err := os.MkdirTemp("", "*")
 	if err != nil {
@@ -72,14 +67,10 @@ func s3ArtifactGenerate(artifact string, command string) (string, error) {
 
 	// clean up downloaded jar file
 	defer func(tmpDir string) {
-		if err2 := os.Chdir("/"); err2 != nil {
-			log.Printf("cleanup process, cd %v error:%v\n", baseDir, err2)
+		if err2 := os.RemoveAll(tmpDir); err2 != nil {
+			log.Printf("local downloaded artifact cleanup error:%v\n", err2)
 		} else {
-			if err2 := os.RemoveAll(tmpDir); err2 != nil {
-				log.Printf("local downloaded artifact cleanup error:%v\n", err2)
-			} else {
-				log.Printf("finished cleanup downloaded file %v\n", localFile)
-			}
+			log.Printf("finished cleanup downloaded file %v\n", localFile)
 		}
 	}(tmpDir)
 
