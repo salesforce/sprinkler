@@ -56,7 +56,7 @@ func (every Every) String() string {
 }
 
 func ParseEvery(str string) (Every, error) {
-	re := regexp.MustCompile("^([0-9]+).(minute|day|week|month|year)$")
+	re := regexp.MustCompile("^([0-9]+)\\.(minute|day|week|month|year)$")
 	matches := re.FindStringSubmatch(str)
 
 	if len(matches) != 3 {
