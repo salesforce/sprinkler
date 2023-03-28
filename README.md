@@ -42,7 +42,7 @@ Post to `http://localhost:8080/v1/workflow` a Sprinkler workflow, example payloa
     "every": "60 minute",
     "nextRuntime": "2023-03-22T21:00:00Z",
     "backfill": false,
-    "owner": "mc-kernel",
+    "owner": "arn:aws:sns:us-east-2:444455556666:MyTopic",
     "isActive": true
 }
 ```
