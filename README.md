@@ -39,7 +39,7 @@ Post to `http://localhost:8080/v1/workflow` a Sprinkler workflow, example payloa
     "name": "test-workflow",
     "artifact": "s3://sprinkler-salesforce-bucket/jars/test/spade-example.jar",
     "command":  "[\"java\", \"-cp\", \"spade-example.jar\", \"com.salesforce.mce.spade.examples.ExampleWorkflow\", \"generate\", \"--compact\"]",
-    "every": "60 minute",
+    "every": "60.minute",
     "nextRuntime": "2023-03-22T21:00:00Z",
     "backfill": false,
     "owner": "arn:aws:sns:us-east-2:444455556666:MyTopic",
