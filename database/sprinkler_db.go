@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"mce.salesforce.com/sprinkler/common"
 )
 
 type Dsn struct {
@@ -40,11 +41,11 @@ var sprinklerDB *gorm.DB
 func GetInstance() *gorm.DB {
 	once.Do(func() {
 		dsn := &Dsn{
-			Host:     viper.GetString("db.host"),
-			User:     viper.GetString("db.user"),
-			Password: viper.GetString("db.password"),
-			DBName:   viper.GetString("db.dbname"),
-			SSLMode:  viper.GetString("db.sslmode"),
+			Host:     viper.GetString(common.DBConfigHost),
+			User:     viper.GetString(common.DBConfigUser),
+			Password: viper.GetString(common.DBConfigPassword),
+			DBName:   viper.GetString(common.DBConfigDBName),
+			SSLMode:  viper.GetString(common.DBCOnfigSSLMode),
 		}
 
 		db, err := gorm.Open(postgres.Open(dsn.stringify()), &gorm.Config{})
