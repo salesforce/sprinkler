@@ -19,4 +19,11 @@ control:
 scheduler:
   interval: "1s"
   orchardAddress: "http://ws:8082"
+
+aws:
+  clientRegion: "changeme"
+  staticCredentials:
+    awsAccessKeyId: "changeme"
+    awsSecretKey: "changeme"
+  assumeRoleArn: "changeme"
 ...
