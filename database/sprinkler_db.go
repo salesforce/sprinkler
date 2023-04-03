@@ -45,7 +45,7 @@ func GetInstance() *gorm.DB {
 			User:     viper.GetString(common.DBConfigUser),
 			Password: viper.GetString(common.DBConfigPassword),
 			DBName:   viper.GetString(common.DBConfigDBName),
-			SSLMode:  viper.GetString(common.DBCOnfigSSLMode),
+			SSLMode:  viper.GetString(common.DBConfigSSLMode),
 		}
 
 		db, err := gorm.Open(postgres.Open(dsn.stringify()), &gorm.Config{})
