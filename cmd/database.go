@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/viper"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"mce.salesforce.com/sprinkler/common"
 	"mce.salesforce.com/sprinkler/database"
 )
 
@@ -26,16 +27,11 @@ type DatabaseCmdOpt struct {
 }
 
 const (
-	DBFlagHost       string = "host"
-	DBConfigHost            = "db.host"
-	DBFlagUser              = "user"
-	DBConfigUser            = "db.user"
-	DBFlagPassword          = "password"
-	DBConfigPassword        = "db.password"
-	DBFlagDBName            = "dbname"
-	DBConfigDBName          = "db.dbname"
-	DBFlagSSLMode           = "sslmode"
-	DBConfigSSLMode         = "db.sslmode"
+	DBFlagHost     string = "host"
+	DBFlagUser            = "user"
+	DBFlagPassword        = "password"
+	DBFlagDBName          = "dbname"
+	DBFlagSSLMode         = "sslmode"
 )
 
 // databaseCmd represents the database command
@@ -71,31 +67,31 @@ func init() {
 
 	databaseCmd.PersistentFlags().String(DBFlagHost, "db", "database host")
 	viper.BindPFlag(
-		DBConfigHost,
+		common.DBConfigHost,
 		databaseCmd.PersistentFlags().Lookup(DBFlagHost),
 	)
 
 	databaseCmd.PersistentFlags().String(DBFlagUser, "postgres", "database username")
 	viper.BindPFlag(
-		DBConfigUser,
+		common.DBConfigUser,
 		databaseCmd.PersistentFlags().Lookup(DBFlagUser),
 	)
 
 	databaseCmd.PersistentFlags().String(DBFlagPassword, "sprinkler", "database password")
 	viper.BindPFlag(
-		DBConfigPassword,
+		common.DBConfigPassword,
 		databaseCmd.PersistentFlags().Lookup(DBFlagPassword),
 	)
 
 	databaseCmd.PersistentFlags().String(DBFlagDBName, "postgres", "database name")
 	viper.BindPFlag(
-		DBConfigDBName,
+		common.DBConfigDBName,
 		databaseCmd.PersistentFlags().Lookup(DBFlagDBName),
 	)
 
 	databaseCmd.PersistentFlags().String(DBFlagSSLMode, "disable", "database name")
 	viper.BindPFlag(
-		DBConfigSSLMode,
+		common.DBConfigSSLMode,
 		databaseCmd.PersistentFlags().Lookup(DBFlagSSLMode),
 	)
 }
