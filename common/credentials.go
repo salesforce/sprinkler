@@ -14,10 +14,10 @@ import (
 )
 
 type AwsCredentials struct {
+	ClientRegion   string
 	AwsAccessKeyId string
 	AwsSecretKey   string
 	AssumeRoleArn  string
-	ClientRegion   string
 }
 
 func WithAwsCredentials() AwsCredentials {
