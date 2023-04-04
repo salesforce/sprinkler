@@ -29,32 +29,34 @@ func WithAwsCredentials() AwsCredentials {
 	}
 }
 
-// precedence order is static credentials, assume role, and then default credential chain
 func (c AwsCredentials) credentialsProvider() (config.LoadOptionsFunc, error) {
+	var credProvider = config.WithCredentialsProvider(nil)
 	if c.AwsAccessKeyId != "" && c.AwsSecretKey != "" {
-		credProvider := config.WithCredentialsProvider(
+		credProvider = config.WithCredentialsProvider(
 			credentials.NewStaticCredentialsProvider(
 				c.AwsAccessKeyId,
 				c.AwsSecretKey, "",
 			),
 		)
-		return credProvider, nil
 	}
 	if c.AssumeRoleArn != "" {
-		sdkConfig, err := config.LoadDefaultConfig(context.TODO())
+		awsConfig, err := config.LoadDefaultConfig(
+			context.TODO(),
+			credProvider, // use static credentials if provided
+		)
 		if err != nil {
 			return nil, err
 		}
-		stsClient := sts.NewFromConfig(sdkConfig)
-		credProvider := config.WithCredentialsProvider(
+		stsClient := sts.NewFromConfig(awsConfig)
+		assumeRoleProvider := config.WithCredentialsProvider(
 			stscreds.NewAssumeRoleProvider(
 				stsClient,
 				c.AssumeRoleArn,
 			),
 		)
-		return credProvider, nil
+		return assumeRoleProvider, nil
 	}
-	return config.WithCredentialsProvider(nil), nil // default credential chain will be used
+	return credProvider, nil // default credentials chain if no aws configs set
 }
 
 func (c AwsCredentials) AwsConfig() (aws.Config, error) {
