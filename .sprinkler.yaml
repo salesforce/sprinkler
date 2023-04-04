@@ -26,5 +26,6 @@ scheduler:
 #   staticCredentials:
 #     awsAccessKeyId: "changeme"
 #     awsSecretKey: "changeme"
+#     sessionToken: "changeme"
 #   assumeRoleArn: "changeme"
 ...

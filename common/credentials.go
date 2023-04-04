@@ -17,6 +17,7 @@ type AwsCredentials struct {
 	ClientRegion   string
 	AwsAccessKeyId string
 	AwsSecretKey   string
+	SessionToken   string
 	AssumeRoleArn  string
 }
 
@@ -25,6 +26,7 @@ func WithAwsCredentials() AwsCredentials {
 		ClientRegion:   viper.GetString("aws.clientRegion"),
 		AwsAccessKeyId: viper.GetString("aws.staticCredentials.awsAccessKeyId"),
 		AwsSecretKey:   viper.GetString("aws.staticCredentials.awsSecretKey"),
+		SessionToken:   viper.GetString("aws.staticCredentials.sessionToken"),
 		AssumeRoleArn:  viper.GetString("aws.assumeRoleArn"),
 	}
 }
@@ -35,7 +37,8 @@ func (c AwsCredentials) credentialsProvider() (config.LoadOptionsFunc, error) {
 		credProvider = config.WithCredentialsProvider(
 			credentials.NewStaticCredentialsProvider(
 				c.AwsAccessKeyId,
-				c.AwsSecretKey, "",
+				c.AwsSecretKey,
+				c.SessionToken, // empty string will be ignored
 			),
 		)
 	}
@@ -66,7 +69,7 @@ func (c AwsCredentials) AwsConfig() (aws.Config, error) {
 	}
 	return config.LoadDefaultConfig(
 		context.TODO(),
-		config.WithRegion(c.ClientRegion), // empty string region will be ignored
+		config.WithRegion(c.ClientRegion), // empty string will be ignored
 		credProvider,
 	)
 }
