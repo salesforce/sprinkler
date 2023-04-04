@@ -45,7 +45,7 @@ func s3ArtifactGenerate(artifact string, command string) (string, error) {
 	}
 
 	// download s3 artifact as local file in tmp directory
-	s3c, err := common.DefaultS3Client()
+	s3c, err := common.WithAwsCredentials().S3Client()
 	if err != nil {
 		return "", err
 	}

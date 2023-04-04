@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
@@ -22,19 +21,9 @@ import (
 type S3Basics struct {
 	S3Client *s3.Client
 }
-
 type S3BucketPath struct {
 	Bucket string
 	Path   string
-}
-
-func DefaultS3Client() (*s3.Client, error) {
-	sdkConfig, err := config.LoadDefaultConfig(context.TODO())
-	if err != nil {
-		return nil, fmt.Errorf("Couldn't load default configuration; check AWS account setup. Error: %w\n", err)
-	}
-	s3Client := s3.NewFromConfig(sdkConfig)
-	return s3Client, nil
 }
 
 // ListObjects lists the objects in a bucket.

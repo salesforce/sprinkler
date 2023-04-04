@@ -19,4 +19,13 @@ control:
 scheduler:
   interval: "1s"
   orchardAddress: "http://ws:8082"
+
+# configs for static credentials or role arn to assume
+# aws:
+#   clientRegion: "changeme"
+#   staticCredentials:
+#     awsAccessKeyId: "changeme"
+#     awsSecretKey: "changeme"
+#     sessionToken: "changeme"
+#   assumeRoleArn: "changeme"
 ...
