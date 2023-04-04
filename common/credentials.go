@@ -29,8 +29,17 @@ func WithAwsCredentials() AwsCredentials {
 	}
 }
 
-// assume role takes precedence over statc credentials if both set
+// precedence order is static credentials, assume role, and then default credential chain
 func (c AwsCredentials) credentialsProvider() (config.LoadOptionsFunc, error) {
+	if c.AwsAccessKeyId != "" && c.AwsSecretKey != "" {
+		credProvider := config.WithCredentialsProvider(
+			credentials.NewStaticCredentialsProvider(
+				c.AwsAccessKeyId,
+				c.AwsSecretKey, "",
+			),
+		)
+		return credProvider, nil
+	}
 	if c.AssumeRoleArn != "" {
 		sdkConfig, err := config.LoadDefaultConfig(context.TODO())
 		if err != nil {
@@ -41,15 +50,6 @@ func (c AwsCredentials) credentialsProvider() (config.LoadOptionsFunc, error) {
 			stscreds.NewAssumeRoleProvider(
 				stsClient,
 				c.AssumeRoleArn,
-			),
-		)
-		return credProvider, nil
-	}
-	if c.AwsAccessKeyId != "" && c.AwsSecretKey != "" {
-		credProvider := config.WithCredentialsProvider(
-			credentials.NewStaticCredentialsProvider(
-				c.AwsAccessKeyId,
-				c.AwsSecretKey, "",
 			),
 		)
 		return credProvider, nil
