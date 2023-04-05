@@ -20,8 +20,8 @@ scheduler:
   interval: "1s"
   orchard:
     address: "http://ws:8082"
-    apiKeyName: "x-api-key"
-    apiKey: "changeme"
+    # apiKeyName: "x-api-key"
+    # apiKey: "changeme"
 
 # configs for static credentials or role arn to assume
 # aws:

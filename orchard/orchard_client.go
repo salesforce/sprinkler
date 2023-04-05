@@ -35,7 +35,9 @@ func (c OrchardRestClient) request(method string, url string, body io.Reader) (*
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set(c.APIKeyName, c.APIKey)
+	if c.APIKeyName != "" && c.APIKey != "" {
+		req.Header.Set(c.APIKeyName, c.APIKey)
+	}
 	rsp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
