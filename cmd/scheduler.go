@@ -14,14 +14,18 @@ import (
 )
 
 type SchedulerCmdOpt struct {
-	Interval       time.Duration
-	OrchardAddress string
+	Interval          time.Duration
+	OrchardAddress    string
+	OrchardAPIKeyName string
+	OrchardAPIKey     string
 }
 
 func getSchedulerCmdOpt() SchedulerCmdOpt {
 	return SchedulerCmdOpt{
-		Interval:       viper.GetDuration("scheduler.interval"),
-		OrchardAddress: viper.GetString("scheduler.orchardAddress"),
+		Interval:          viper.GetDuration("scheduler.interval"),
+		OrchardAddress:    viper.GetString("scheduler.orchard.address"),
+		OrchardAPIKeyName: viper.GetString("scheduler.orchard.apiKeyName"),
+		OrchardAPIKey:     viper.GetString("scheduler.orchard.apiKey"),
 	}
 }
 
@@ -38,9 +42,11 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		schedulerCmdOpt := getSchedulerCmdOpt()
 		scheduler := &service.Scheduler{
-			Interval:    schedulerCmdOpt.Interval,
-			MaxSize:     10,
-			OrchardHost: schedulerCmdOpt.OrchardAddress,
+			Interval:          schedulerCmdOpt.Interval,
+			MaxSize:           10,
+			OrchardHost:       schedulerCmdOpt.OrchardAddress,
+			OrchardAPIKeyName: schedulerCmdOpt.OrchardAPIKeyName,
+			OrchardAPIKey:     schedulerCmdOpt.OrchardAPIKey,
 		}
 		scheduler.Start()
 	},
@@ -57,9 +63,23 @@ func init() {
 	viper.BindPFlag("scheduler.interval", schedulerCmd.Flags().Lookup("interval"))
 
 	schedulerCmd.Flags().String(
-		"orchard",
+		"orchardAddress",
 		"http://ws:8081",
 		"address to orchard service",
 	)
-	viper.BindPFlag("scheduler.orchardAddress", schedulerCmd.Flags().Lookup("orchard"))
+	viper.BindPFlag("scheduler.orchard.address", schedulerCmd.Flags().Lookup("orchard"))
+
+	schedulerCmd.Flags().String(
+		"orchardAPIKeyName",
+		"",
+		"api key name to orchard service",
+	)
+	viper.BindPFlag("scheduler.orchard.apiKeyName", schedulerCmd.Flags().Lookup("orchard"))
+
+	schedulerCmd.Flags().String(
+		"orchardAPIKey",
+		"",
+		"api key to orchard service",
+	)
+	viper.BindPFlag("scheduler.orchard.apiKey", schedulerCmd.Flags().Lookup("orchard"))
 }

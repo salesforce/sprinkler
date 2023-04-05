@@ -24,7 +24,28 @@ type OrchardClient interface {
 }
 
 type OrchardRestClient struct {
-	Host string
+	Host       string
+	APIKeyName string
+	APIKey     string
+}
+
+func (c OrchardRestClient) request(method string, url string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if c.APIKeyName != "" && c.APIKey != "" {
+		req.Header.Set(c.APIKeyName, c.APIKey)
+	}
+	rsp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if rsp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("invalid http code %d", rsp.StatusCode)
+	}
+	return rsp, nil
 }
 
 func (c OrchardRestClient) Create(wf table.Workflow) (string, error) {
@@ -35,14 +56,12 @@ func (c OrchardRestClient) Create(wf table.Workflow) (string, error) {
 		return "", err
 	}
 	url := fmt.Sprintf("%s/v1/workflow", c.Host)
-	rsp, err := http.Post(url, "application/json", bytes.NewBuffer([]byte(result)))
+	body := bytes.NewBuffer([]byte(result))
+	rsp, err := c.request(http.MethodPost, url, body)
 	if err != nil {
 		return "", err
 	}
 	defer rsp.Body.Close()
-	if rsp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("invalid http code %d", rsp.StatusCode)
-	}
 	rawJson, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return "", err
@@ -57,20 +76,8 @@ func (c OrchardRestClient) Create(wf table.Workflow) (string, error) {
 
 func (c OrchardRestClient) Activate(orchardID string) error {
 	url := fmt.Sprintf("%s/v1/workflow/%s/activate", c.Host, orchardID)
-	req, err := http.NewRequest(http.MethodPut, url, nil)
-	if err != nil {
-		return err
-	}
-	req.Header.Set("content-type", "application/json")
-	rsp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer rsp.Body.Close()
-	if rsp.StatusCode != http.StatusOK {
-		return fmt.Errorf("invalid http code %d", rsp.StatusCode)
-	}
-	return nil
+	_, err := c.request(http.MethodPut, url, nil)
+	return err
 }
 
 type FakeOrchardClient struct {
