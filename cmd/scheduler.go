@@ -71,7 +71,7 @@ func init() {
 
 	schedulerCmd.Flags().String(
 		"orchardAPIKeyName",
-		"x-api-key",
+		"",
 		"api key name to orchard service",
 	)
 	viper.BindPFlag("scheduler.orchard.apiKeyName", schedulerCmd.Flags().Lookup("orchard"))
