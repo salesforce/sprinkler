@@ -79,20 +79,22 @@ func s3ArtifactGenerate(artifact string, command string) (string, error) {
 
 func processCmd(command string, pwd string) (string, error) {
 	if err := os.Chdir(pwd); err != nil {
-		return "", fmt.Errorf("cd %v has error:%w", pwd, err)
+		return "", fmt.Errorf("cd %v has error: %w", pwd, err)
 	}
 	cmds, err := parseCommandLine(command)
 	if err != nil {
-		return "", fmt.Errorf("parse command line error%w", err)
+		return "", fmt.Errorf("parse command line error %w", err)
 	}
 	if len(cmds) < 1 {
 		return "", fmt.Errorf("Invalid command line %s", command)
 	}
-	out, err := exec.Command(cmds[0], cmds[1:]...).Output()
+	cmd := exec.Command(cmds[0], cmds[1:]...)
+	out, err := cmd.CombinedOutput()
+	output := string(out)
 	if err != nil {
-		return "", fmt.Errorf("exec command %v has error:%w", command, err)
+		return "", fmt.Errorf("exec command %v has error: %w: %s", command, err, output)
 	}
-	return string(out), nil
+	return output, nil
 }
 
 func parseCommandLine(command string) ([]string, error) {

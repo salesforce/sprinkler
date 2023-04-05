@@ -18,9 +18,11 @@ import (
 )
 
 type Scheduler struct {
-	Interval    time.Duration
-	MaxSize     uint
-	OrchardHost string
+	Interval          time.Duration
+	MaxSize           uint
+	OrchardHost       string
+	OrchardAPIKeyName string
+	OrchardAPIKey     string
 }
 
 func (s *Scheduler) Start() {
@@ -70,7 +72,9 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 
 	fmt.Println("running workflow", wf.Name, token)
 	client := &orchard.OrchardRestClient{
-		Host: s.OrchardHost,
+		Host:       s.OrchardHost,
+		APIKeyName: s.OrchardAPIKeyName,
+		APIKey:     s.OrchardAPIKey,
 	}
 	orchardID, err := client.Create(wf)
 	if err != nil {
