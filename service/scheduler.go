@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"mce.salesforce.com/sprinkler/common"
 	"mce.salesforce.com/sprinkler/database"
 	"mce.salesforce.com/sprinkler/database/table"
 	"mce.salesforce.com/sprinkler/model"
@@ -124,21 +125,23 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 func notifyOwner(wf table.Workflow) {
 	errMsg := fmt.Sprintf("[error] Failed to schedule workflow %q\n", wf)
 	log.Println(errMsg)
-	if wf.Owner == nil || wf.Owner == "" {
+	if wf.Owner == nil || *wf.Owner == "" {
 		return
 	}
 
-	client, err := common.SNSClient()
+	cred := common.WithAwsCredentials()
+	client, err := cred.SNSClient()
 	if err != nil {
 		log.Println("[error] error initiating SNS client")
 	}
 
 	input := &sns.PublishInput{
-		Message:  errMsg,
+		Message:  &errMsg,
 		TopicArn: wf.Owner,
 	}
 
-	result, err := client.Publish(
+	// result, err :=
+	client.Publish(
 		context.TODO(),
 		input,
 	)
