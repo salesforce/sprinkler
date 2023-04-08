@@ -119,7 +119,11 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 }
 
 func notifyOwner(wf table.Workflow, orchardErr error) {
-	errMsg := fmt.Sprintf("[error] Failed to schedule workflow %q with error %q\n", wf, orchardErr)
+	errMsg := fmt.Sprintf(
+		"[error] Failed to schedule workflow %v with error %q\n",
+		wf,
+		orchardErr,
+	)
 	log.Println(errMsg)
 	if wf.Owner == nil || *wf.Owner == "" {
 		return
