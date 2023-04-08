@@ -46,7 +46,6 @@ func (s *Scheduler) scheduleWorkflows(db *gorm.DB) {
 		Where("next_runtime <= ? and l.token is null", time.Now()).
 		Find(&workflows)
 
-	// db.Where("next_runtime <= ?", time.Now()).Find(&workflows)
 	for _, wf := range workflows {
 		go s.lockAndRun(db, wf)
 	}
@@ -82,17 +81,14 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 	}
 	orchardID, err := client.Create(wf)
 	if err != nil {
-		// TODO should not panic here
-		fmt.Println(err)
-		notifyOwner(wf)
-		// panic("Don't panic, do something1")
+		notifyOwner(wf, err)
 	}
 	err = client.Activate(orchardID)
 	scheduleStatus := "activated"
 	if err != nil {
 		fmt.Println(err)
 		scheduleStatus = "error"
-		notifyOwner(wf)
+		notifyOwner(wf, err)
 	}
 
 	// add to scheduled and update the next run time
@@ -122,8 +118,8 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 		Delete(&table.WorkflowSchedulerLock{})
 }
 
-func notifyOwner(wf table.Workflow) {
-	errMsg := fmt.Sprintf("[error] Failed to schedule workflow %q\n", wf)
+func notifyOwner(wf table.Workflow, orchardErr error) {
+	errMsg := fmt.Sprintf("[error] Failed to schedule workflow %q with error %q\n", wf, orchardErr)
 	log.Println(errMsg)
 	if wf.Owner == nil || *wf.Owner == "" {
 		return
@@ -140,12 +136,21 @@ func notifyOwner(wf table.Workflow) {
 		TopicArn: wf.Owner,
 	}
 
-	// result, err :=
-	client.Publish(
+	result, err := client.Publish(
 		context.TODO(),
 		input,
 	)
-	// TODO implement this
+
+	if err != nil {
+		log.Println("[error] error publishing SNS message")
+		log.Println(err)
+	}
+
+	log.Printf(
+		"Successful notify owner %q, with message ID: %q\n",
+		*wf.Owner,
+		*result.MessageId,
+	)
 }
 
 // ignore addInterval parsing error here, since it shouldn't fail
