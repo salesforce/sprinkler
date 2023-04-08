@@ -6,9 +6,12 @@
 package service
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 	"mce.salesforce.com/sprinkler/database"
@@ -80,13 +83,15 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 	if err != nil {
 		// TODO should not panic here
 		fmt.Println(err)
-		panic("Don't panic, do something1")
+		notifyOwner(wf)
+		// panic("Don't panic, do something1")
 	}
 	err = client.Activate(orchardID)
 	scheduleStatus := "activated"
 	if err != nil {
 		fmt.Println(err)
 		scheduleStatus = "error"
+		notifyOwner(wf)
 	}
 
 	// add to scheduled and update the next run time
@@ -114,6 +119,30 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 	// release the lock
 	db.Where("workflow_id = ? and token = ?", wf.ID, token).
 		Delete(&table.WorkflowSchedulerLock{})
+}
+
+func notifyOwner(wf table.Workflow) {
+	errMsg := fmt.Sprintf("[error] Failed to schedule workflow %q\n", wf)
+	log.Println(errMsg)
+	if wf.Owner == nil || wf.Owner == "" {
+		return
+	}
+
+	client, err := common.SNSClient()
+	if err != nil {
+		log.Println("[error] error initiating SNS client")
+	}
+
+	input := &sns.PublishInput{
+		Message:  errMsg,
+		TopicArn: wf.Owner,
+	}
+
+	result, err := client.Publish(
+		context.TODO(),
+		input,
+	)
+	// TODO implement this
 }
 
 // ignore addInterval parsing error here, since it shouldn't fail
