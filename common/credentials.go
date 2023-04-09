@@ -93,9 +93,19 @@ func AWSClient[C any](
 }
 
 func (c AwsCredentials) S3Client() (*s3.Client, error) {
-	return AWSClient(c, func(cfg aws.Config) *s3.Client { return s3.NewFromConfig(cfg) })
+	return AWSClient(
+		c,
+		func(cfg aws.Config) *s3.Client {
+			return s3.NewFromConfig(cfg)
+		},
+	)
 }
 
 func (c AwsCredentials) SNSClient() (*sns.Client, error) {
-	return AWSClient(c, func(cfg aws.Config) *sns.Client { return sns.NewFromConfig(cfg) })
+	return AWSClient(
+		c,
+		func(cfg aws.Config) *sns.Client {
+			return sns.NewFromConfig(cfg)
+		},
+	)
 }

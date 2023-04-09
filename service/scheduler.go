@@ -148,6 +148,7 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 	if err != nil {
 		log.Println("[error] error publishing SNS message")
 		log.Println(err)
+		return
 	}
 
 	log.Printf(
