@@ -89,6 +89,7 @@ func processCmd(command string, pwd string) (string, error) {
 		return "", fmt.Errorf("Invalid command line %s", command)
 	}
 	cmd := exec.Command(cmds[0], cmds[1:]...)
+	cmd.Env = os.Environ()
 	out, err := cmd.CombinedOutput()
 	output := string(out)
 	if err != nil {
