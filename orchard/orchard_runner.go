@@ -110,7 +110,7 @@ func processCmd(command string, pwd string) (string, error) {
 	output := string(stdout)
 	if err != nil {
 		combinedOutput := fmt.Sprintf("%s\n%s", output, string(stderr))
-		return "", fmt.Errorf("exec command %v has error: %w: %", command, err, combinedOutput)
+		return "", fmt.Errorf("exec command %v has error: %w: %s", command, err, combinedOutput)
 	}
 	return output, nil
 }
