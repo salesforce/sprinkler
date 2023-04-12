@@ -6,7 +6,9 @@
 package orchard
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -77,6 +79,21 @@ func s3ArtifactGenerate(artifact string, command string) (string, error) {
 	return processCmd(command, tmpDir)
 }
 
+func cmdOutput(cmd *exec.Cmd) ([]byte, []byte, error) {
+	if cmd.Stdout != nil {
+		return nil, nil, errors.New("exec: Stdout already set")
+	}
+	if cmd.Stderr != nil {
+		return nil, nil, errors.New("exec: Stderr already set")
+	}
+	var b bytes.Buffer
+	var c bytes.Buffer
+	cmd.Stdout = &b
+	cmd.Stderr = &c
+	err := cmd.Run()
+	return b.Bytes(), c.Bytes(), err
+}
+
 func processCmd(command string, pwd string) (string, error) {
 	if err := os.Chdir(pwd); err != nil {
 		return "", fmt.Errorf("cd %v has error: %w", pwd, err)
@@ -89,10 +106,11 @@ func processCmd(command string, pwd string) (string, error) {
 		return "", fmt.Errorf("Invalid command line %s", command)
 	}
 	cmd := exec.Command(cmds[0], cmds[1:]...)
-	out, err := cmd.CombinedOutput()
-	output := string(out)
+	stdout, stderr, err := cmdOutput(cmd)
+	output := string(stdout)
 	if err != nil {
-		return "", fmt.Errorf("exec command %v has error: %w: %s", command, err, output)
+		combinedOutput := fmt.Sprintf("%s\n%s", output, string(stderr))
+		return "", fmt.Errorf("exec command %v has error: %w: %", command, err, combinedOutput)
 	}
 	return output, nil
 }
