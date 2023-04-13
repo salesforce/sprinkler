@@ -14,8 +14,8 @@ import (
 
 type Workflow struct {
 	gorm.Model
-	Name        string      `gorm:"type:varchar(256);not null"`
-	Artifact    string      `gorm:"type:varchar(2048);not null"`
+	Name        string      `gorm:"type:varchar(256);index:workflows_name_artifact,unique"`
+	Artifact    string      `gorm:"type:varchar(2048);index:workflows_name_artifact,unique"`
 	Command     string      `gorm:"type:text;not null"`
 	Every       model.Every `gorm:"type:varchar(64);not null"`
 	NextRuntime time.Time   `gorm:"not null"`
@@ -39,4 +39,9 @@ type WorkflowSchedulerLock struct {
 	WorkflowID uint      `gorm:"primaryKey"`
 	Token      string    `gorm:"type:varchar(64);not null"`
 	LockTime   time.Time `gorm:"not null"`
+}
+
+type SchemaEvolution struct {
+	SchemaVersion string    `gorm:"primaryKey"`
+	ExecutedAt    time.Time `gorm:"not null"`
 }

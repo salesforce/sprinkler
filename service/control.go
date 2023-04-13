@@ -6,6 +6,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"mce.salesforce.com/sprinkler/database"
 	"mce.salesforce.com/sprinkler/database/table"
 	"mce.salesforce.com/sprinkler/model"
@@ -34,6 +36,11 @@ type postWorkflowReq struct {
 	Backfill    bool      `json:"backfill"` // default false if absent
 	Owner       *string   `json:"owner"`
 	IsActive    bool      `json:"isActive"` // default false if absent
+}
+
+type deleteWorkflowReq struct {
+	Name     string `json:"name" binding:"required"`
+	Artifact string `json:"artifact" binding:"required"`
 }
 
 func NewControl(address string, trustedProxies []string, apiKey string) *Control {
@@ -69,8 +76,34 @@ func (ctrl *Control) postWorkflow(c *gin.Context) {
 		Owner:       body.Owner,
 		IsActive:    body.IsActive,
 	}
-	ctrl.db.Create(&wf)
+	// upsert workflow
+	ctrl.db.Clauses(
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "name"}, {Name: "artifact"}},
+			DoUpdates: clause.AssignmentColumns([]string{"updated_at", "command", "every", "next_runtime", "backfill", "owner", "is_active"}),
+		}).Create(&wf)
+	ctrl.db.Unscoped().Model(&wf).Update("deleted_at", nil)
 	c.JSON(http.StatusOK, "OK")
+}
+
+func (ctrl *Control) deleteWorkflow(c *gin.Context) {
+	var body deleteWorkflowReq
+	if err := c.BindJSON(&body); err != nil {
+		// bad request
+		c.JSON(http.StatusBadRequest, gin.H{"message": "could not parse body"})
+		return
+	}
+	var wf = table.Workflow{}
+	dbResult := ctrl.db.Where("name = ? and artifact = ?", body.Name, body.Artifact).First(&wf)
+	if dbResult.Error == nil && dbResult.RowsAffected == 1 {
+		ctrl.db.Where("workflow_id = ?", &wf.ID).Delete(&table.WorkflowSchedulerLock{})
+		ctrl.db.Delete(&wf)
+		c.JSON(http.StatusOK, gin.H{"name:": body.Name, "artifact": body.Artifact})
+	} else if dbResult.Error != nil && errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
+		c.JSON(http.StatusNotFound, gin.H{"name:": body.Name, "artifact": body.Artifact})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"name:": body.Name, "artifact": body.Artifact, "error": dbResult.Error})
+	}
 }
 
 func APIKeyAuth(key string) gin.HandlerFunc {
@@ -93,6 +126,7 @@ func (ctrl *Control) Run() {
 	v1.Use(APIKeyAuth(ctrl.apiKey))
 	{
 		v1.POST("/workflow", ctrl.postWorkflow)
+		v1.DELETE("/workflow", ctrl.deleteWorkflow)
 	}
 
 	r.GET("__status", func(c *gin.Context) {
