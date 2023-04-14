@@ -40,8 +40,3 @@ type WorkflowSchedulerLock struct {
 	Token      string    `gorm:"type:varchar(64);not null"`
 	LockTime   time.Time `gorm:"not null"`
 }
-
-type SchemaEvolution struct {
-	SchemaVersion string    `gorm:"primaryKey"`
-	ExecutedAt    time.Time `gorm:"not null"`
-}

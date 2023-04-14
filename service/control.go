@@ -93,16 +93,16 @@ func (ctrl *Control) deleteWorkflow(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "could not parse body"})
 		return
 	}
-	var wf = table.Workflow{}
-	dbResult := ctrl.db.Where("name = ? and artifact = ?", body.Name, body.Artifact).First(&wf)
-	if dbResult.Error == nil && dbResult.RowsAffected == 1 {
-		ctrl.db.Where("workflow_id = ?", &wf.ID).Delete(&table.WorkflowSchedulerLock{})
-		ctrl.db.Delete(&wf)
-		c.JSON(http.StatusOK, gin.H{"name:": body.Name, "artifact": body.Artifact})
-	} else if dbResult.Error != nil && errors.Is(dbResult.Error, gorm.ErrRecordNotFound) {
+
+	dbRes := ctrl.db.Where("name = ? and artifact = ?", body.Name, body.Artifact).Delete(&table.Workflow{})
+	if dbRes.Error != nil && errors.Is(dbRes.Error, gorm.ErrRecordNotFound) {
 		c.JSON(http.StatusNotFound, gin.H{"name:": body.Name, "artifact": body.Artifact})
+		return
+	}
+	if dbRes.Error == nil {
+		c.JSON(http.StatusOK, gin.H{"name:": body.Name, "artifact": body.Artifact})
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"name:": body.Name, "artifact": body.Artifact, "error": dbResult.Error})
+		c.JSON(http.StatusInternalServerError, gin.H{"name:": body.Name, "artifact": body.Artifact, "error": dbRes.Error})
 	}
 }
 
