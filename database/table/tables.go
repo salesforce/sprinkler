@@ -14,8 +14,8 @@ import (
 
 type Workflow struct {
 	gorm.Model
-	Name        string      `gorm:"type:varchar(256);index:workflows_name_artifact,unique"`
-	Artifact    string      `gorm:"type:varchar(2048);index:workflows_name_artifact,unique"`
+	Name        string      `gorm:"type:varchar(256);not null;index:workflows_name_artifact,unique"`
+	Artifact    string      `gorm:"type:varchar(2048);not null;;index:workflows_name_artifact,unique"`
 	Command     string      `gorm:"type:text;not null"`
 	Every       model.Every `gorm:"type:varchar(64);not null"`
 	NextRuntime time.Time   `gorm:"not null"`
