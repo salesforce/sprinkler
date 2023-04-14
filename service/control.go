@@ -39,8 +39,7 @@ type postWorkflowReq struct {
 }
 
 type deleteWorkflowReq struct {
-	Name     string `json:"name" binding:"required"`
-	Artifact string `json:"artifact" binding:"required"`
+	Name string `json:"name" binding:"required"`
 }
 
 func NewControl(address string, trustedProxies []string, apiKey string) *Control {
@@ -79,8 +78,8 @@ func (ctrl *Control) postWorkflow(c *gin.Context) {
 	// upsert workflow
 	ctrl.db.Clauses(
 		clause.OnConflict{
-			Columns:   []clause.Column{{Name: "name"}, {Name: "artifact"}},
-			DoUpdates: clause.AssignmentColumns([]string{"updated_at", "command", "every", "next_runtime", "backfill", "owner", "is_active"}),
+			Columns:   []clause.Column{{Name: "name"}},
+			DoUpdates: clause.AssignmentColumns([]string{"updated_at", "artifact", "command", "every", "next_runtime", "backfill", "owner", "is_active"}),
 		}).Create(&wf)
 	ctrl.db.Unscoped().Model(&wf).Update("deleted_at", nil)
 	c.JSON(http.StatusOK, "OK")
@@ -94,15 +93,15 @@ func (ctrl *Control) deleteWorkflow(c *gin.Context) {
 		return
 	}
 
-	dbRes := ctrl.db.Where("name = ? and artifact = ?", body.Name, body.Artifact).Delete(&table.Workflow{})
-	if dbRes.Error != nil && errors.Is(dbRes.Error, gorm.ErrRecordNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"name:": body.Name, "artifact": body.Artifact})
+	dbRes := ctrl.db.Where("name = ?", body.Name).Delete(&table.Workflow{})
+	if (dbRes.Error != nil && errors.Is(dbRes.Error, gorm.ErrRecordNotFound)) || dbRes.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"name:": body.Name})
 		return
 	}
 	if dbRes.Error == nil {
-		c.JSON(http.StatusOK, gin.H{"name:": body.Name, "artifact": body.Artifact})
+		c.JSON(http.StatusOK, gin.H{"name:": body.Name})
 	} else {
-		c.JSON(http.StatusInternalServerError, gin.H{"name:": body.Name, "artifact": body.Artifact, "error": dbRes.Error})
+		c.JSON(http.StatusInternalServerError, gin.H{"name:": body.Name, "error": dbRes.Error})
 	}
 }
 
