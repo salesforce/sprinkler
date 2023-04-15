@@ -55,12 +55,14 @@ func (ctrl *Control) putWorkflow(c *gin.Context) {
 	if err := c.BindJSON(&body); err != nil {
 		// bad request
 		fmt.Println(err)
+		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	every, err := model.ParseEvery(body.Every)
 	if err != nil {
 		fmt.Println(err)
+		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
