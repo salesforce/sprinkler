@@ -11,7 +11,7 @@ import (
 	"mce.salesforce.com/sprinkler/database"
 )
 
-var withSample = true
+var withSample = false
 
 // initializeCmd represents the initialize command
 var initializeCmd = &cobra.Command{
