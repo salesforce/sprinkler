@@ -28,7 +28,6 @@ func initializeDatabase() {
 		if db.Migrator().CreateTable(database.Tables...) != nil {
 			panic("Failed creating tables")
 		}
-
 		if withSample {
 			db.Create(&database.SampleWorkflows)
 		}
