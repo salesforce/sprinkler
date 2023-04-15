@@ -11,21 +11,19 @@ import (
 	"mce.salesforce.com/sprinkler/database"
 )
 
-var withSample = true
-
-// initializeCmd represents the initialize command
-var initializeCmd = &cobra.Command{
-	Use:   "initialize",
-	Short: "Initialize the database tables",
-	Long:  `Create and setup all tables for sprinkler.`,
+// migrateCmd represents the migrate command
+var migrateCmd = &cobra.Command{
+	Use:   "migrate",
+	Short: "Migrate the database tables",
+	Long:  `Migrate all tables for sprinkler.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		initializeDatabase()
+		migrateDatabase()
 	},
 }
 
-func initializeDatabase() {
+func migrateDatabase() {
 	runDatabaseEffects(func(db *gorm.DB) {
-		if db.Migrator().CreateTable(database.Tables...) != nil {
+		if db.AutoMigrate(database.Tables...) != nil {
 			panic("Failed creating tables")
 		}
 
@@ -36,8 +34,8 @@ func initializeDatabase() {
 }
 
 func init() {
-	databaseCmd.AddCommand(initializeCmd)
+	databaseCmd.AddCommand(migrateCmd)
 
-	initializeCmd.Flags().BoolVar(
+	migrateCmd.Flags().BoolVar(
 		&withSample, "with-sample", false, "With Sample Data")
 }
