@@ -6,7 +6,6 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -51,7 +50,7 @@ func NewControl(address string, trustedProxies []string, apiKey string) *Control
 	}
 }
 
-func (ctrl *Control) postWorkflow(c *gin.Context) {
+func (ctrl *Control) putWorkflow(c *gin.Context) {
 	var body postWorkflowReq
 	if err := c.BindJSON(&body); err != nil {
 		// bad request
@@ -94,7 +93,7 @@ func (ctrl *Control) deleteWorkflow(c *gin.Context) {
 	}
 
 	dbRes := ctrl.db.Where("name = ?", body.Name).Delete(&table.Workflow{})
-	if (dbRes.Error != nil && errors.Is(dbRes.Error, gorm.ErrRecordNotFound)) || dbRes.RowsAffected == 0 {
+	if dbRes.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"name:": body.Name})
 		return
 	}
@@ -124,7 +123,7 @@ func (ctrl *Control) Run() {
 	v1 := r.Group("/v1")
 	v1.Use(APIKeyAuth(ctrl.apiKey))
 	{
-		v1.POST("/workflow", ctrl.postWorkflow)
+		v1.PUT("/workflow", ctrl.putWorkflow)
 		v1.DELETE("/workflow", ctrl.deleteWorkflow)
 	}
 
