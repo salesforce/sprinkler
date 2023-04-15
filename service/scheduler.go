@@ -43,7 +43,7 @@ func (s *Scheduler) scheduleWorkflows(db *gorm.DB) {
 
 	db.Model(&table.Workflow{}).
 		Joins("left join workflow_scheduler_locks l on workflows.id = l.workflow_id").
-		Where("next_runtime <= ? and l.token is null", time.Now()).
+		Where("next_runtime <= ? and is_active = 't' and l.token is null", time.Now()).
 		Find(&workflows)
 
 	for _, wf := range workflows {
