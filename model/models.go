@@ -31,6 +31,7 @@ const (
 
 var EveryUnits = map[EveryUnit]EveryUnit{
 	EveryMinute: EveryMinute,
+	EveryHour:   EveryHour,
 	EveryDay:    EveryDay,
 	EveryWeek:   EveryWeek,
 	EveryMonth:  EveryMonth,
