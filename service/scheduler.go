@@ -82,6 +82,7 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 	orchardID, err := client.Create(wf)
 	if err != nil {
 		notifyOwner(wf, err)
+		return
 	}
 	err = client.Activate(orchardID)
 	scheduleStatus := "activated"
@@ -89,6 +90,7 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 		fmt.Println(err)
 		scheduleStatus = "error"
 		notifyOwner(wf, err)
+		return
 	}
 
 	// add to scheduled and update the next run time
