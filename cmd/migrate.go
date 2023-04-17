@@ -26,10 +26,6 @@ func migrateDatabase() {
 		if db.AutoMigrate(database.Tables...) != nil {
 			panic("Failed creating tables")
 		}
-
-		if withSample {
-			db.Create(&database.SampleWorkflows)
-		}
 	})
 }
 
