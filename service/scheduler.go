@@ -79,18 +79,18 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 		APIKeyName: s.OrchardAPIKeyName,
 		APIKey:     s.OrchardAPIKey,
 	}
+
 	orchardID, err := client.Create(wf)
-	if err != nil {
-		notifyOwner(wf, err)
-		return
-	}
-	err = client.Activate(orchardID)
 	scheduleStatus := "activated"
 	if err != nil {
-		fmt.Println(err)
-		scheduleStatus = "error"
 		notifyOwner(wf, err)
-		return
+	} else {
+		err = client.Activate(orchardID)
+		if err != nil {
+			fmt.Println(err)
+			scheduleStatus = "error"
+			notifyOwner(wf, err)
+		}
 	}
 
 	// add to scheduled and update the next run time
