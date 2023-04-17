@@ -22,6 +22,7 @@ type EveryUnit string
 
 const (
 	EveryMinute EveryUnit = "minute"
+	EveryHour             = "hour"
 	EveryDay              = "day"
 	EveryWeek             = "week"
 	EveryMonth            = "month"
@@ -30,6 +31,7 @@ const (
 
 var EveryUnits = map[EveryUnit]EveryUnit{
 	EveryMinute: EveryMinute,
+	EveryHour:   EveryHour,
 	EveryDay:    EveryDay,
 	EveryWeek:   EveryWeek,
 	EveryMonth:  EveryMonth,
@@ -56,7 +58,7 @@ func (every Every) String() string {
 }
 
 func ParseEvery(str string) (Every, error) {
-	re := regexp.MustCompile("^([0-9]+)\\.(minute|day|week|month|year)$")
+	re := regexp.MustCompile("^([0-9]+)\\.(minute|hour|day|week|month|year)$")
 	matches := re.FindStringSubmatch(str)
 
 	if len(matches) != 3 {
