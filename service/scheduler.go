@@ -6,11 +6,15 @@
 package service
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
+	"mce.salesforce.com/sprinkler/common"
 	"mce.salesforce.com/sprinkler/database"
 	"mce.salesforce.com/sprinkler/database/table"
 	"mce.salesforce.com/sprinkler/model"
@@ -42,7 +46,6 @@ func (s *Scheduler) scheduleWorkflows(db *gorm.DB) {
 		Where("next_runtime <= ? and is_active = 't' and l.token is null", time.Now()).
 		Find(&workflows)
 
-	// db.Where("next_runtime <= ?", time.Now()).Find(&workflows)
 	for _, wf := range workflows {
 		go s.lockAndRun(db, wf)
 	}
@@ -76,17 +79,18 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 		APIKeyName: s.OrchardAPIKeyName,
 		APIKey:     s.OrchardAPIKey,
 	}
+
 	orchardID, err := client.Create(wf)
+	scheduleStatus := "error"
 	if err != nil {
-		// TODO should not panic here
-		fmt.Println(err)
-		panic("Don't panic, do something1")
-	}
-	err = client.Activate(orchardID)
-	scheduleStatus := "activated"
-	if err != nil {
-		fmt.Println(err)
-		scheduleStatus = "error"
+		notifyOwner(wf, err)
+	} else {
+		err = client.Activate(orchardID)
+		if err != nil {
+			fmt.Println(err)
+			notifyOwner(wf, err)
+		}
+		scheduleStatus = "activated"
 	}
 
 	// add to scheduled and update the next run time
@@ -114,6 +118,46 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 	// release the lock
 	db.Where("workflow_id = ? and token = ?", wf.ID, token).
 		Delete(&table.WorkflowSchedulerLock{})
+}
+
+func notifyOwner(wf table.Workflow, orchardErr error) {
+	errMsg := fmt.Sprintf(
+		"[error] Failed to schedule workflow %v with error %q\n",
+		wf,
+		orchardErr,
+	)
+	log.Println(errMsg)
+	if wf.Owner == nil || *wf.Owner == "" {
+		return
+	}
+
+	cred := common.WithAwsCredentials()
+	client, err := cred.SNSClient()
+	if err != nil {
+		log.Println("[error] error initiating SNS client")
+	}
+
+	input := &sns.PublishInput{
+		Message:  &errMsg,
+		TopicArn: wf.Owner,
+	}
+
+	result, err := client.Publish(
+		context.TODO(),
+		input,
+	)
+
+	if err != nil {
+		log.Println("[error] error publishing SNS message")
+		log.Println(err)
+		return
+	}
+
+	log.Printf(
+		"Successful notify owner %q, with message ID: %q\n",
+		*wf.Owner,
+		*result.MessageId,
+	)
 }
 
 // ignore addInterval parsing error here, since it shouldn't fail

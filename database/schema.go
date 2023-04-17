@@ -6,6 +6,7 @@
 package database
 
 import (
+	"os"
 	"time"
 
 	"mce.salesforce.com/sprinkler/database/table"
@@ -18,7 +19,7 @@ var Tables = []interface{}{
 	&table.WorkflowSchedulerLock{},
 }
 
-var owner = "example@example.com"
+var owner = os.Getenv("OWNER_SNS")
 
 var SampleWorkflows = []table.Workflow{
 	table.Workflow{

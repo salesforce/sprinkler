@@ -1,3 +1,8 @@
+// Copyright (c) 2022, Salesforce, Inc.
+// All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+// For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
+
 package common
 
 import (
@@ -9,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/spf13/viper"
 )
@@ -74,11 +80,32 @@ func (c AwsCredentials) AwsConfig() (aws.Config, error) {
 	)
 }
 
-func (c AwsCredentials) S3Client() (*s3.Client, error) {
-	awsConfig, err := c.AwsConfig()
+func AWSClient[C any](
+	cred AwsCredentials,
+	createClient func(aws.Config) *C,
+) (*C, error) {
+	awsConfig, err := cred.AwsConfig()
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't load configuration. Error: %w\n", err)
 	}
-	s3Client := s3.NewFromConfig(awsConfig)
-	return s3Client, nil
+	client := createClient(awsConfig)
+	return client, nil
+}
+
+func (c AwsCredentials) S3Client() (*s3.Client, error) {
+	return AWSClient(
+		c,
+		func(cfg aws.Config) *s3.Client {
+			return s3.NewFromConfig(cfg)
+		},
+	)
+}
+
+func (c AwsCredentials) SNSClient() (*sns.Client, error) {
+	return AWSClient(
+		c,
+		func(cfg aws.Config) *sns.Client {
+			return sns.NewFromConfig(cfg)
+		},
+	)
 }

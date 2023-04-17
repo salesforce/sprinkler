@@ -6,6 +6,12 @@ services:
       - ./:/sprinkler
     environment:
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      OWNER_SNS: "${OWNER_SNS}"
+      AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+      AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+      AWS_SESSION_TOKEN: "${AWS_SESSION_TOKEN}"
+      AWS_DEFAULT_REGION: "${AWS_DEFAULT_REGION}"
+      AWS_SESSION_TOKEN_TTL: "${AWS_SESSION_TOKEN_TTL}"
     ports:
       - 8080:8080
     tty: true
