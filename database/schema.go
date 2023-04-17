@@ -19,7 +19,7 @@ var Tables = []interface{}{
 	&table.WorkflowSchedulerLock{},
 }
 
-var owner = os.Getenv("OWNER_SNS") // "example@example.com"
+var owner = os.Getenv("OWNER_SNS")
 
 var SampleWorkflows = []table.Workflow{
 	table.Workflow{
