@@ -174,6 +174,8 @@ func addInterval(someTime time.Time, every model.Every) time.Time {
 	switch every.Unit {
 	case model.EveryMinute:
 		return someTime.Add(time.Duration(every.Quantity) * time.Minute)
+	case model.EveryHour:
+		return someTime.Add(time.Duration(every.Quantity) * time.Hour)
 	case model.EveryDay:
 		return someTime.AddDate(0, 0, int(every.Quantity))
 	case model.EveryWeek:
@@ -183,5 +185,5 @@ func addInterval(someTime time.Time, every model.Every) time.Time {
 	case model.EveryYear:
 		return someTime.AddDate(int(every.Quantity), 0, 0)
 	}
-	panic("wrong")
+	panic(fmt.Sprintf("Every unit '%s' not recognized", every.Unit))
 }

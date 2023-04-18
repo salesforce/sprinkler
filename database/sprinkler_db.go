@@ -50,7 +50,7 @@ func GetInstance() *gorm.DB {
 
 		db, err := gorm.Open(postgres.Open(dsn.stringify()), &gorm.Config{})
 		if err != nil {
-			panic("failed to connect database")
+			panic("Failed to connect database")
 		}
 		sprinklerDB = db
 	})
