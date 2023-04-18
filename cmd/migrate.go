@@ -31,7 +31,4 @@ func migrateDatabase() {
 
 func init() {
 	databaseCmd.AddCommand(migrateCmd)
-
-	migrateCmd.Flags().BoolVar(
-		&withSample, "with-sample", false, "With Sample Data")
 }
