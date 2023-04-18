@@ -13,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"mce.salesforce.com/sprinkler/database"
 	"mce.salesforce.com/sprinkler/database/table"
 	"mce.salesforce.com/sprinkler/model"
@@ -36,6 +37,10 @@ type postWorkflowReq struct {
 	IsActive    bool      `json:"isActive"` // default false if absent
 }
 
+type deleteWorkflowReq struct {
+	Name string `json:"name" binding:"required"`
+}
+
 func NewControl(address string, trustedProxies []string, apiKey string) *Control {
 	return &Control{
 		db:             database.GetInstance(),
@@ -45,17 +50,19 @@ func NewControl(address string, trustedProxies []string, apiKey string) *Control
 	}
 }
 
-func (ctrl *Control) postWorkflow(c *gin.Context) {
+func (ctrl *Control) putWorkflow(c *gin.Context) {
 	var body postWorkflowReq
 	if err := c.BindJSON(&body); err != nil {
 		// bad request
 		fmt.Println(err)
+		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
 	every, err := model.ParseEvery(body.Every)
 	if err != nil {
 		fmt.Println(err)
+		c.JSON(http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -69,8 +76,34 @@ func (ctrl *Control) postWorkflow(c *gin.Context) {
 		Owner:       body.Owner,
 		IsActive:    body.IsActive,
 	}
-	ctrl.db.Create(&wf)
+	// upsert workflow
+	ctrl.db.Clauses(
+		clause.OnConflict{
+			Columns:   []clause.Column{{Name: "name"}},
+			DoUpdates: clause.AssignmentColumns([]string{"updated_at", "artifact", "command", "every", "next_runtime", "backfill", "owner", "is_active"}),
+		}).Create(&wf)
+	ctrl.db.Unscoped().Model(&wf).Update("deleted_at", nil)
 	c.JSON(http.StatusOK, "OK")
+}
+
+func (ctrl *Control) deleteWorkflow(c *gin.Context) {
+	var body deleteWorkflowReq
+	if err := c.BindJSON(&body); err != nil {
+		// bad request
+		c.JSON(http.StatusBadRequest, gin.H{"message": "could not parse body"})
+		return
+	}
+
+	dbRes := ctrl.db.Where("name = ?", body.Name).Delete(&table.Workflow{})
+	if dbRes.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"name:": body.Name})
+		return
+	}
+	if dbRes.Error == nil {
+		c.JSON(http.StatusOK, gin.H{"name:": body.Name})
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"name:": body.Name, "error": dbRes.Error})
+	}
 }
 
 func APIKeyAuth(key string) gin.HandlerFunc {
@@ -92,7 +125,8 @@ func (ctrl *Control) Run() {
 	v1 := r.Group("/v1")
 	v1.Use(APIKeyAuth(ctrl.apiKey))
 	{
-		v1.POST("/workflow", ctrl.postWorkflow)
+		v1.PUT("/workflow", ctrl.putWorkflow)
+		v1.DELETE("/workflow", ctrl.deleteWorkflow)
 	}
 
 	r.GET("__status", func(c *gin.Context) {
