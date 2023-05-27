@@ -100,7 +100,7 @@ func unifyLabels(keyList []string, labels map[string]string) map[string]string {
 //
 // [counter docs]: https://prometheus.io/docs/tutorials/understanding_metric_types/#counter
 func AddCounter(key string, help string, labels []string) {
-	_, ok := counters[key]
+	_, ok := histograms[key]
 	if ok {
 		return
 	}
