@@ -4,7 +4,7 @@
 // For full license text, see the LICENSE file in the repo root or https://opensource.org/licenses/BSD-3-Clause
 
 // Package metrics provides standard READs metrics for HTTP applications, as well as a way to define and set
-// custom metrics for your project.
+// custom metrics.
 //
 // This package automatically creates three metrics on initialization:
 //  1. http_requests_total: A counter metric, which counts all http requests (assuming you include the [GinMiddleware]
