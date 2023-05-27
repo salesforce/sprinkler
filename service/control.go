@@ -16,6 +16,7 @@ import (
 	"gorm.io/gorm/clause"
 	"mce.salesforce.com/sprinkler/database"
 	"mce.salesforce.com/sprinkler/database/table"
+	"mce.salesforce.com/sprinkler/metrics"
 	"mce.salesforce.com/sprinkler/model"
 )
 
@@ -121,6 +122,7 @@ func (ctrl *Control) Run() {
 	if err := r.SetTrustedProxies(ctrl.trustedProxies); err != nil {
 		log.Fatal(err)
 	}
+	r.Use(metrics.GinMiddleware)
 
 	v1 := r.Group("/v1")
 	v1.Use(APIKeyAuth(ctrl.apiKey))
@@ -135,6 +137,7 @@ func (ctrl *Control) Run() {
 			"status":   "ok",
 		})
 	})
+	r.GET("__metrics", metrics.GinMetricsHandler)
 
 	if err := r.Run(ctrl.address); err != nil {
 		log.Fatal(err)
