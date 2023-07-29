@@ -32,10 +32,10 @@ const (
 	statusLabel = "status"
 	routeLabel  = "route"
 
-	requestDurationKey           = "http_request_duration_seconds"
-	requestDurationPercentileKey = "http_request_duration_percentile_seconds"
-	totalRequestsKey             = "http_requests_total"
-	totalErrorsKey               = "http_errors_total"
+	requestDurationKey     = "http_request_duration_seconds"
+	requestDurationPctlKey = "http_request_duration_percentile_seconds"
+	totalRequestsKey       = "http_requests_total"
+	totalErrorsKey         = "http_errors_total"
 )
 
 type counterMetric struct {
@@ -256,7 +256,7 @@ func init() {
 	AddCounter(totalRequestsKey, "Total number of HTTP requests", []string{statusLabel, routeLabel})
 	AddCounter(totalErrorsKey, "Total number of errors (a status other than 2XX)", []string{statusLabel, routeLabel})
 	AddHistogram(requestDurationKey, "Duration of all HTTP requests", []string{statusLabel, routeLabel})
-	AddSummary(requestDurationPercentileKey, "Duration percentile of all HTTP requests", []string{statusLabel, routeLabel})
+	AddSummary(requestDurationPctlKey, "Duration percentile of all HTTP requests", []string{statusLabel, routeLabel})
 }
 
 // GinMiddleware is a [gin.HandlerFunc] which will update the default http_requests_total, http_errors_total,
@@ -273,7 +273,7 @@ func GinMiddleware(c *gin.Context) {
 	status := c.Writer.Status()
 	statusLabels := map[string]string{statusLabel: fmt.Sprintf("%d", status), routeLabel: path}
 	UpdateHistogram(requestDurationKey, e, statusLabels)
-	UpdateSummary(requestDurationPercentileKey, e, statusLabels)
+	UpdateSummary(requestDurationPctlKey, e, statusLabels)
 	IncrementCounter(totalRequestsKey, statusLabels)
 	if status < 200 || status > 299 {
 		IncrementCounter(totalErrorsKey, statusLabels)
