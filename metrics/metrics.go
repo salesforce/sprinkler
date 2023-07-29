@@ -14,6 +14,8 @@
 //     The status and path of the request are included as labels
 //  3. http_request_duration_seconds: A histogram which tracks the duration of each request
 //     The status and path of the request are included as labels
+//  4. http_request_duration_percentile_seconds: A summary which tracks the duration percentile of each request
+//     The status and path of the request are included as labels
 package metrics
 
 import (
@@ -30,9 +32,10 @@ const (
 	statusLabel = "status"
 	routeLabel  = "route"
 
-	requestDurationKey = "http_request_duration_seconds"
-	totalRequestsKey   = "http_requests_total"
-	totalErrorsKey     = "http_errors_total"
+	requestDurationKey           = "http_request_duration_seconds"
+	requestDurationPercentileKey = "http_request_duration_percentile_seconds"
+	totalRequestsKey             = "http_requests_total"
+	totalErrorsKey               = "http_errors_total"
 )
 
 type counterMetric struct {
@@ -55,11 +58,23 @@ func (m *histogramMetric) With(labels map[string]string) prometheus.Observer {
 	return m.histogram.With(unifyLabels(m.labels, labels))
 }
 
+type summaryMetric struct {
+	key     string
+	summary *prometheus.SummaryVec
+	labels  []string
+}
+
+func (m *summaryMetric) With(labels map[string]string) prometheus.Observer {
+	return m.summary.With(unifyLabels(m.labels, labels))
+}
+
 var (
-	registry       = prometheus.DefaultRegisterer
-	counters       = make(map[string]*counterMetric, 0)
-	histograms     = make(map[string]*histogramMetric, 0)
-	defaultBuckets = []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 15.0, 60.0, 300.0, 1200.0, math.MaxFloat64}
+	registry         = prometheus.DefaultRegisterer
+	counters         = make(map[string]*counterMetric, 0)
+	histograms       = make(map[string]*histogramMetric, 0)
+	summaries        = make(map[string]*summaryMetric, 0)
+	defaultBuckets   = []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 15.0, 60.0, 300.0, 1200.0, math.MaxFloat64}
+	defaultQuantiles = map[float64]float64{0.5: 0.001, 0.95: 0.001, 0.99: 0.001}
 )
 
 func getCounter(name string) *counterMetric {
@@ -72,6 +87,14 @@ func getCounter(name string) *counterMetric {
 
 func getHistogram(name string) *histogramMetric {
 	val, ok := histograms[name]
+	if ok {
+		return val
+	}
+	return nil
+}
+
+func getSummary(name string) *summaryMetric {
+	val, ok := summaries[name]
 	if ok {
 		return val
 	}
@@ -152,6 +175,39 @@ func AddHistogram(key string, help string, labels []string) {
 	registry.MustRegister(newHistogram.histogram)
 }
 
+// AddSummary adds a new summary metric
+// A new summary metric is added with the name provided by key, and a description provided by help.
+// The labels provided should be any label that _could_ be associated with the summary,
+// even if it's not _always_ associated with the summary.
+//
+// All summaries are created with a standard set of quantiles which are:
+//
+//	[0.5: 0.001, 0.95: 0.001, 0.99: 0.001]
+//
+// See the [summary docs] for more information
+//
+// [summary docs]: https://prometheus.io/docs/tutorials/understanding_metric_types/#summary
+func AddSummary(key string, help string, labels []string) {
+	_, ok := summaries[key]
+	if ok {
+		return
+	}
+	newSummary := &summaryMetric{
+		key:    key,
+		labels: labels,
+		summary: prometheus.NewSummaryVec(
+			prometheus.SummaryOpts{
+				Name:       key,
+				Help:       help,
+				Objectives: defaultQuantiles,
+			},
+			labels,
+		),
+	}
+	summaries[key] = newSummary
+	registry.MustRegister(newSummary.summary)
+}
+
 // IncrementCounter will increment the counter specified by key by 1.
 // The labels provided by the labels property will be compared to the list of labels used to create the counter.
 // Any labels _not_ included in this call that were specified when the counter was created
@@ -181,10 +237,26 @@ func UpdateHistogram(key string, howLong time.Duration, labels map[string]string
 	histogram.With(labels).Observe(howLong.Seconds())
 }
 
+// UpdateSummary will update the summary specified by key with the duration from howLong as Seconds.
+// So a duration of 500ms will be recorded as 0.5 in the summary.
+// The labels provided by the labels property will be compared to the list of labels used to create the summary.
+// Any labels _not_ included in this call there were specified when the summary was created
+// will be given blank values (empty strings).
+// Any labels included in this call which were _not_ included when the summary was created
+// will be silently ignored
+func UpdateSummary(key string, howLong time.Duration, labels map[string]string) {
+	summary := getSummary(key)
+	if summary == nil {
+		return
+	}
+	summary.With(labels).Observe(howLong.Seconds())
+}
+
 func init() {
 	AddCounter(totalRequestsKey, "Total number of HTTP requests", []string{statusLabel, routeLabel})
 	AddCounter(totalErrorsKey, "Total number of errors (a status other than 2XX)", []string{statusLabel, routeLabel})
 	AddHistogram(requestDurationKey, "Duration of all HTTP requests", []string{statusLabel, routeLabel})
+	AddSummary(requestDurationPercentileKey, "Duration percentile of all HTTP requests", []string{statusLabel, routeLabel})
 }
 
 // GinMiddleware is a [gin.HandlerFunc] which will update the default http_requests_total, http_errors_total,
@@ -201,6 +273,7 @@ func GinMiddleware(c *gin.Context) {
 	status := c.Writer.Status()
 	statusLabels := map[string]string{statusLabel: fmt.Sprintf("%d", status), routeLabel: path}
 	UpdateHistogram(requestDurationKey, e, statusLabels)
+	UpdateSummary(requestDurationPercentileKey, e, statusLabels)
 	IncrementCounter(totalRequestsKey, statusLabels)
 	if status < 200 || status > 299 {
 		IncrementCounter(totalErrorsKey, statusLabels)
