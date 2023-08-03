@@ -80,29 +80,33 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 		APIKey:     s.OrchardAPIKey,
 	}
 
-	orchardID, err := client.Create(wf)
+	orchardIDs, err := client.Create(wf)
 	scheduleStatus := "error"
 	if err != nil {
 		notifyOwner(wf, err)
 	} else {
-		err = client.Activate(orchardID)
-		if err != nil {
-			fmt.Println(err)
-			notifyOwner(wf, err)
+		for _, orchardID := range orchardIDs {
+			err = client.Activate(orchardID)
+			if err != nil {
+				fmt.Println(err)
+				notifyOwner(wf, err)
+			}
 		}
 		scheduleStatus = "activated"
 	}
 
 	// add to scheduled and update the next run time
 	db.Transaction(func(tx *gorm.DB) error {
-		if err := tx.Create(&table.ScheduledWorkflow{
-			WorkflowID:         wf.ID,
-			OrchardID:          orchardID,
-			StartTime:          time.Now(),
-			ScheduledStartTime: wf.NextRuntime,
-			Status:             scheduleStatus,
-		}).Error; err != nil {
-			return err
+		for _, orchardID := range orchardIDs {
+			if err := tx.Create(&table.ScheduledWorkflow{
+				WorkflowID:         wf.ID,
+				OrchardID:          orchardID,
+				StartTime:          time.Now(),
+				ScheduledStartTime: wf.NextRuntime,
+				Status:             scheduleStatus,
+			}).Error; err != nil {
+				return err
+			}
 		}
 
 		fmt.Println(wf.Every)

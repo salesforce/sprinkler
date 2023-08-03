@@ -48,13 +48,25 @@ func (c OrchardRestClient) request(method string, url string, body io.Reader) (*
 	return rsp, nil
 }
 
-func (c OrchardRestClient) Create(wf table.Workflow) (string, error) {
+func (c OrchardRestClient) Create(wf table.Workflow) ([]string, error) {
 	runner := OrchardStdoutRunner{}
-	result, err := runner.Generate(wf.Artifact, wf.Command)
+	results, err := runner.Generate(wf.Artifact, wf.Command)
 	if err != nil {
 		log.Printf("OrchardRestClient Create > Generate error: %v\n", err)
-		return "", err
+		return []string{}, err
 	}
+	orchardIDs := []string{}
+	for _, result := range results {
+		orchardId, err := c.create(result)
+		if err != nil {
+			return []string{}, err
+		}
+		orchardIDs = append(orchardIDs, orchardId)
+	}
+	return orchardIDs, nil
+}
+
+func (c OrchardRestClient) create(result string) (string, error) {
 	url := fmt.Sprintf("%s/v1/workflow", c.Host)
 	body := bytes.NewBuffer([]byte(result))
 	rsp, err := c.request(http.MethodPost, url, body)
@@ -85,11 +97,11 @@ type FakeOrchardClient struct {
 
 func (c FakeOrchardClient) Create(wf table.Workflow) (string, error) {
 	runner := OrchardStdoutRunner{}
-	result, err := runner.Generate(wf.Artifact, wf.Command)
+	results, err := runner.Generate(wf.Artifact, wf.Command)
 	if err != nil {
 		return "", err
 	}
-	log.Println("generating workflow", result)
+	log.Println("generating workflow", results)
 	time.Sleep(1 * time.Second)
 	return fmt.Sprintf("wf-%s", uuid.New().String()), nil
 }

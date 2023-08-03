@@ -26,44 +26,44 @@ type OrchardRunner interface {
 
 type OrchardStdoutRunner struct{}
 
-func (r OrchardStdoutRunner) Generate(artifact string, command string) (string, error) {
+func (r OrchardStdoutRunner) Generate(artifact string, command string) ([]string, error) {
 	if artifact == "" {
 		return processCmd(command, baseDir)
 	}
 
 	if !strings.HasPrefix(artifact, "s3://") {
-		return "", fmt.Errorf("artifact %v is not supported\n", artifact)
+		return []string{}, fmt.Errorf("artifact %v is not supported\n", artifact)
 	}
 
 	return s3ArtifactGenerate(artifact, command)
 }
 
-func s3ArtifactGenerate(artifact string, command string) (string, error) {
+func s3ArtifactGenerate(artifact string, command string) ([]string, error) {
 
 	// tmp directory to avoid threads race on downloaded artifact
 	tmpDir, err := os.MkdirTemp("", "sprinkler-")
 	if err != nil {
-		return "", fmt.Errorf("problem creating a tmp directory: %w", err)
+		return []string{}, fmt.Errorf("problem creating a tmp directory: %w", err)
 	}
 
 	// download s3 artifact as local file in tmp directory
 	s3c, err := common.WithAwsCredentials().S3Client()
 	if err != nil {
-		return "", err
+		return []string{}, err
 	}
 	s3 := common.S3Basics{S3Client: s3c}
 	s3bucketPath, err := s3.GetBucketPath(artifact)
 	if err != nil {
-		return "", err
+		return []string{}, err
 	}
 	localFile, err := s3.GetLastSegment(s3bucketPath.Path)
 	if err != nil {
-		return "", fmt.Errorf("problem extracting filename from artifact path: %w", err)
+		return []string{}, fmt.Errorf("problem extracting filename from artifact path: %w", err)
 	}
 	localFile = tmpDir + "/" + localFile
 	err = s3.DownloadFile(s3bucketPath.Bucket, s3bucketPath.Path, localFile)
 	if err != nil {
-		return "", fmt.Errorf("problem downloading s3 artifact %v to %v: %w", s3bucketPath.Path, localFile, err)
+		return []string{}, fmt.Errorf("problem downloading s3 artifact %v to %v: %w", s3bucketPath.Path, localFile, err)
 	}
 	log.Printf("downloaded %v\n", localFile)
 
@@ -94,25 +94,31 @@ func cmdOutput(cmd *exec.Cmd) ([]byte, []byte, error) {
 	return b.Bytes(), c.Bytes(), err
 }
 
-func processCmd(command string, pwd string) (string, error) {
+func processCmd(command string, pwd string) ([]string, error) {
 	if err := os.Chdir(pwd); err != nil {
-		return "", fmt.Errorf("cd %v has error: %w", pwd, err)
+		return []string{}, fmt.Errorf("cd %v has error: %w", pwd, err)
 	}
 	cmds, err := parseCommandLine(command)
 	if err != nil {
-		return "", fmt.Errorf("parse command line error %w", err)
+		return []string{}, fmt.Errorf("parse command line error %w", err)
 	}
 	if len(cmds) < 1 {
-		return "", fmt.Errorf("Invalid command line %s", command)
+		return []string{}, fmt.Errorf("Invalid command line %s", command)
 	}
 	cmd := exec.Command(cmds[0], cmds[1:]...)
 	stdout, stderr, err := cmdOutput(cmd)
 	output := string(stdout)
+	outputs := []string{}
+	for _, payload := range strings.Split(output, "\n") {
+		if len(payload) > 0 {
+			outputs = append(outputs, payload)
+		}
+	}
 	if err != nil {
 		combinedOutput := fmt.Sprintf("%s\n%s", output, string(stderr))
-		return "", fmt.Errorf("exec command %v has error: %w: %s", command, err, combinedOutput)
+		return []string{}, fmt.Errorf("exec command %v has error: %w: %s", command, err, combinedOutput)
 	}
-	return output, nil
+	return outputs, nil
 }
 
 func parseCommandLine(command string) ([]string, error) {
