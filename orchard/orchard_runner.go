@@ -103,20 +103,19 @@ func processCmd(command string, pwd string) ([]string, error) {
 		return []string{}, fmt.Errorf("parse command line error %w", err)
 	}
 	if len(cmds) < 1 {
-		return []string{}, fmt.Errorf("Invalid command line %s", command)
+		return []string{}, fmt.Errorf("invalid command line %s", command)
 	}
 	cmd := exec.Command(cmds[0], cmds[1:]...)
 	stdout, stderr, err := cmdOutput(cmd)
 	output := string(stdout)
-	outputs := []string{}
-	for _, payload := range strings.Split(output, "\n") {
-		if len(payload) > 0 {
-			outputs = append(outputs, payload)
-		}
-	}
 	if err != nil {
 		combinedOutput := fmt.Sprintf("%s\n%s", output, string(stderr))
 		return []string{}, fmt.Errorf("exec command %v has error: %w: %s", command, err, combinedOutput)
+	}
+	var outputs []string
+	err = json.Unmarshal([]byte(output), &outputs)
+	if err != nil {
+		return []string{}, fmt.Errorf("marshall error %w", err)
 	}
 	return outputs, nil
 }
