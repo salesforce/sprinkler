@@ -115,7 +115,12 @@ func processCmd(command string, pwd string) ([]string, error) {
 	var outputs []string
 	err = json.Unmarshal([]byte(output), &outputs)
 	if err != nil {
-		return []string{}, fmt.Errorf("marshall error %w", err)
+		fmt.Printf("unmarshall error: %s", err)
+		for _, payload := range strings.Split(output, "\n") {
+			if len(payload) > 0 {
+				outputs = append(outputs, payload)
+			}
+		}
 	}
 	return outputs, nil
 }
