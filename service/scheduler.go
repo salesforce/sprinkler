@@ -88,8 +88,8 @@ func (s *Scheduler) createActivateWorkflow(
 		fmt.Printf("[error] error creating workflow: %s\n", err)
 		notifyOwner(wf, err)
 		for _, createdID := range createdIDs {
-			err = client.Delete(createdID) // delete created workflows
-			if err != nil {
+			// delete created workflows
+			if err := client.Delete(createdID); err != nil {
 				fmt.Printf("[error] error deleting workflow: %s\n", err)
 				scheduleStatus[createdID] = DeleteFailed.ToString()
 			}
@@ -103,8 +103,8 @@ func (s *Scheduler) createActivateWorkflow(
 				notifyOwner(wf, err)
 				for orchardID, status := range scheduleStatus {
 					if status == Activated.ToString() {
-						err = client.Cancel(orchardID) // cancel activated workflows
-						if err != nil {
+						// cancel activated workflows
+						if err := client.Cancel(orchardID); err != nil {
 							fmt.Printf("[error] error canceling workflow: %s\n", err)
 							scheduleStatus[orchardID] = CancelFailed.ToString()
 						}
