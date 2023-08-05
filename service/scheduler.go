@@ -21,6 +21,33 @@ import (
 	"mce.salesforce.com/sprinkler/orchard"
 )
 
+type ScheduleStatus int
+
+const (
+	Canceled ScheduleStatus = iota
+	CancelFailed
+	Deleted
+	DeleteFailed
+	Activated
+)
+
+func (s ScheduleStatus) ToString() string {
+	switch s {
+	case Canceled:
+		return "canceled"
+	case CancelFailed:
+		return "cancel_failed"
+	case Deleted:
+		return "deleted"
+	case DeleteFailed:
+		return "delete_failed"
+	case Activated:
+		return "activated"
+
+	}
+	panic("unknown ScheduleStatus")
+}
+
 type Scheduler struct {
 	Interval          time.Duration
 	MaxSize           uint
@@ -49,6 +76,47 @@ func (s *Scheduler) scheduleWorkflows(db *gorm.DB) {
 	for _, wf := range workflows {
 		go s.lockAndRun(db, wf)
 	}
+}
+
+func (s *Scheduler) createActivateWorkflow(
+	client *orchard.OrchardRestClient,
+	wf table.Workflow,
+) map[string]string {
+	scheduleStatus := make(map[string]string)
+	createdIDs, err := client.Create(wf)
+	if err != nil {
+		fmt.Printf("[error] error creating workflow: %s\n", err)
+		notifyOwner(wf, err)
+		for _, createdID := range createdIDs {
+			err = client.Delete(createdID) // delete created workflows
+			if err != nil {
+				fmt.Printf("[error] error deleting workflow: %s\n", err)
+				scheduleStatus[createdID] = DeleteFailed.ToString()
+			}
+			scheduleStatus[createdID] = Deleted.ToString()
+		}
+	} else {
+		for _, createdID := range createdIDs {
+			err = client.Activate(createdID)
+			if err != nil {
+				fmt.Printf("[error] error activating workflow: %s\n", err)
+				notifyOwner(wf, err)
+				for orchardID, status := range scheduleStatus {
+					if status == Activated.ToString() {
+						err = client.Cancel(orchardID) // cancel activated workflows
+						if err != nil {
+							fmt.Printf("[error] error canceling workflow: %s\n", err)
+							scheduleStatus[orchardID] = CancelFailed.ToString()
+						}
+						scheduleStatus[orchardID] = Canceled.ToString()
+					}
+				}
+			} else {
+				scheduleStatus[createdID] = Activated.ToString()
+			}
+		}
+	}
+	return scheduleStatus
 }
 
 func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
@@ -80,23 +148,7 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 		APIKey:     s.OrchardAPIKey,
 	}
 
-	scheduleStatus := make(map[string]string)
-	orchardIDs, err := client.Create(wf)
-	if err != nil {
-		notifyOwner(wf, err)
-		scheduleStatus[""] = "error"
-	} else {
-		for _, orchardID := range orchardIDs {
-			err = client.Activate(orchardID)
-			if err != nil {
-				fmt.Println(err)
-				notifyOwner(wf, err)
-				scheduleStatus[orchardID] = "error"
-			} else {
-				scheduleStatus[orchardID] = "activated"
-			}
-		}
-	}
+	scheduleStatus := s.createActivateWorkflow(client, wf)
 
 	// add to scheduled and update the next run time
 	db.Transaction(func(tx *gorm.DB) error {

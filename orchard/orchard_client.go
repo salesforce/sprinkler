@@ -55,15 +55,15 @@ func (c OrchardRestClient) Create(wf table.Workflow) ([]string, error) {
 		log.Printf("OrchardRestClient Create > Generate error: %v\n", err)
 		return []string{}, err
 	}
-	orchardIDs := []string{}
+	createdIDs := []string{}
 	for _, result := range results {
-		orchardId, err := c.create(result)
+		orchardID, err := c.create(result)
 		if err != nil {
-			return []string{}, err
+			return createdIDs, err
 		}
-		orchardIDs = append(orchardIDs, orchardId)
+		createdIDs = append(createdIDs, orchardID)
 	}
-	return orchardIDs, nil
+	return createdIDs, nil
 }
 
 func (c OrchardRestClient) create(result string) (string, error) {
@@ -89,6 +89,18 @@ func (c OrchardRestClient) create(result string) (string, error) {
 func (c OrchardRestClient) Activate(orchardID string) error {
 	url := fmt.Sprintf("%s/v1/workflow/%s/activate", c.Host, orchardID)
 	_, err := c.request(http.MethodPut, url, nil)
+	return err
+}
+
+func (c OrchardRestClient) Cancel(orchardID string) error {
+	url := fmt.Sprintf("%s/v1/workflow/%s/cancel", c.Host, orchardID)
+	_, err := c.request(http.MethodPut, url, nil)
+	return err
+}
+
+func (c OrchardRestClient) Delete(orchardID string) error {
+	url := fmt.Sprintf("%s/v1/workflow/%s", c.Host, orchardID)
+	_, err := c.request(http.MethodDelete, url, nil)
 	return err
 }
 
