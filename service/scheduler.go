@@ -92,8 +92,9 @@ func (s *Scheduler) createActivateWorkflow(
 			if err := client.Delete(createdID); err != nil {
 				fmt.Printf("[error] error deleting workflow: %s\n", err)
 				scheduleStatus[createdID] = DeleteFailed.ToString()
+			} else {
+				scheduleStatus[createdID] = Deleted.ToString()
 			}
-			scheduleStatus[createdID] = Deleted.ToString()
 		}
 	} else {
 		for _, createdID := range createdIDs {
@@ -107,8 +108,9 @@ func (s *Scheduler) createActivateWorkflow(
 						if err := client.Cancel(orchardID); err != nil {
 							fmt.Printf("[error] error canceling workflow: %s\n", err)
 							scheduleStatus[orchardID] = CancelFailed.ToString()
+						} else {
+							scheduleStatus[orchardID] = Canceled.ToString()
 						}
-						scheduleStatus[orchardID] = Canceled.ToString()
 					}
 				}
 			} else {
