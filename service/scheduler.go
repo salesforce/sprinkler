@@ -78,47 +78,66 @@ func (s *Scheduler) scheduleWorkflows(db *gorm.DB) {
 	}
 }
 
+func (s *Scheduler) deleteWorkflows(
+	client *orchard.OrchardRestClient,
+	workflowIDs []string,
+	statuses map[string]string,
+) map[string]string {
+	updatedStatuses := statuses
+	for _, orchardID := range workflowIDs {
+		// delete created workflows
+		if err := client.Delete(orchardID); err != nil {
+			fmt.Printf("[error] error deleting workflow: %s\n", err)
+			updatedStatuses[orchardID] = DeleteFailed.ToString()
+		} else {
+			updatedStatuses[orchardID] = Deleted.ToString()
+		}
+	}
+	return updatedStatuses
+}
+
+func (s *Scheduler) cancelWorkflows(
+	client *orchard.OrchardRestClient,
+	statuses map[string]string,
+) map[string]string {
+	updatedStatuses := statuses
+	for orchardID, status := range statuses {
+		if status == Activated.ToString() {
+			// cancel activated workflows
+			if err := client.Cancel(orchardID); err != nil {
+				fmt.Printf("[error] error canceling workflow: %s\n", err)
+				updatedStatuses[orchardID] = CancelFailed.ToString()
+			} else {
+				updatedStatuses[orchardID] = Canceled.ToString()
+			}
+		}
+	}
+	return updatedStatuses
+}
+
 func (s *Scheduler) createActivateWorkflow(
 	client *orchard.OrchardRestClient,
 	wf table.Workflow,
 ) map[string]string {
-	scheduleStatus := make(map[string]string)
+	statuses := make(map[string]string)
 	createdIDs, err := client.Create(wf)
 	if err != nil {
 		fmt.Printf("[error] error creating workflow: %s\n", err)
 		notifyOwner(wf, err)
-		for _, createdID := range createdIDs {
-			// delete created workflows
-			if err := client.Delete(createdID); err != nil {
-				fmt.Printf("[error] error deleting workflow: %s\n", err)
-				scheduleStatus[createdID] = DeleteFailed.ToString()
-			} else {
-				scheduleStatus[createdID] = Deleted.ToString()
-			}
-		}
+		statuses = s.deleteWorkflows(client, createdIDs, statuses)
 	} else {
 		for _, createdID := range createdIDs {
 			err = client.Activate(createdID)
 			if err != nil {
 				fmt.Printf("[error] error activating workflow: %s\n", err)
 				notifyOwner(wf, err)
-				for orchardID, status := range scheduleStatus {
-					if status == Activated.ToString() {
-						// cancel activated workflows
-						if err := client.Cancel(orchardID); err != nil {
-							fmt.Printf("[error] error canceling workflow: %s\n", err)
-							scheduleStatus[orchardID] = CancelFailed.ToString()
-						} else {
-							scheduleStatus[orchardID] = Canceled.ToString()
-						}
-					}
-				}
+				statuses = s.cancelWorkflows(client, statuses)
 			} else {
-				scheduleStatus[createdID] = Activated.ToString()
+				statuses[createdID] = Activated.ToString()
 			}
 		}
 	}
-	return scheduleStatus
+	return statuses
 }
 
 func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
