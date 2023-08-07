@@ -126,6 +126,7 @@ func (s *Scheduler) createActivateWorkflow(
 		notifyOwner(wf, err)
 		return s.deleteWorkflows(client, createdIDs, statuses)
 	}
+
 	for _, createdID := range createdIDs {
 		err = client.Activate(createdID)
 		if err != nil {
@@ -134,7 +135,6 @@ func (s *Scheduler) createActivateWorkflow(
 			return s.cancelWorkflows(client, statuses)
 		}
 		statuses[createdID] = Activated.ToString()
-
 	}
 	return statuses
 }
