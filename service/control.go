@@ -122,6 +122,8 @@ func (ctrl *Control) Run() {
 	if err := r.SetTrustedProxies(ctrl.trustedProxies); err != nil {
 		log.Fatal(err)
 	}
+
+	r.Use(gin.Recovery())
 	r.Use(metrics.GinMiddleware)
 
 	v1 := r.Group("/v1")
