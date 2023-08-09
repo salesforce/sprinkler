@@ -167,9 +167,11 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 		APIKey:     s.OrchardAPIKey,
 	}
 
+	scheduleStatuses := s.createActivateWorkflow(client, wf)
+
 	now := time.Now()
 	workflows := []table.ScheduledWorkflow{}
-	for orchardID, status := range s.createActivateWorkflow(client, wf) {
+	for orchardID, status := range scheduleStatuses {
 		workflow := table.ScheduledWorkflow{
 			WorkflowID:         wf.ID,
 			OrchardID:          orchardID,
@@ -180,7 +182,7 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 		workflows = append(workflows, workflow)
 	}
 
-	// add to scheduled and update the next run time
+	// add to scheduled in batch and update the next run time
 	db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.CreateInBatches(&workflows, len(workflows)).Error; err != nil {
 			return err
