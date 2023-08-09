@@ -168,7 +168,6 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 	}
 
 	statuses := s.createActivateWorkflow(client, wf)
-
 	now := time.Now()
 	workflows := []table.ScheduledWorkflow{}
 	for orchardID, status := range statuses {
