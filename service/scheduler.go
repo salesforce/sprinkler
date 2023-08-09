@@ -167,11 +167,11 @@ func (s *Scheduler) lockAndRun(db *gorm.DB, wf table.Workflow) {
 		APIKey:     s.OrchardAPIKey,
 	}
 
-	scheduleStatuses := s.createActivateWorkflow(client, wf)
+	statuses := s.createActivateWorkflow(client, wf)
 
 	now := time.Now()
 	workflows := []table.ScheduledWorkflow{}
-	for orchardID, status := range scheduleStatuses {
+	for orchardID, status := range statuses {
 		workflow := table.ScheduledWorkflow{
 			WorkflowID:         wf.ID,
 			OrchardID:          orchardID,
