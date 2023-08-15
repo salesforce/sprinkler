@@ -219,9 +219,9 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 		log.Println("[error] error initiating SNS client")
 	}
 
-	cleanErrMsg := topBytes(errMsg, SNSMaxMessageSizeBytes)
+	croppedErrMsg := topBytes(errMsg, SNSMaxMessageSizeBytes)
 	input := &sns.PublishInput{
-		Message:  &cleanErrMsg,
+		Message:  &croppedErrMsg,
 		TopicArn: wf.Owner,
 	}
 
