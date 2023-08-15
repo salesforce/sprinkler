@@ -22,7 +22,7 @@ import (
 )
 
 // https://docs.aws.amazon.com/sns/latest/api/API_Publish.html
-const SNSMaxMessageSizeBytes int = 262144
+const SNSMessageMaxBytes int = 262144
 
 type ScheduleStatus int
 
@@ -219,7 +219,7 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 		log.Println("[error] error initiating SNS client")
 	}
 
-	croppedErrMsg := topBytes(errMsg, SNSMaxMessageSizeBytes)
+	croppedErrMsg := topBytes(errMsg, SNSMessageMaxBytes)
 	input := &sns.PublishInput{
 		Message:  &croppedErrMsg,
 		TopicArn: wf.Owner,
