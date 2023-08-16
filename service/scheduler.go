@@ -219,7 +219,7 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 		log.Println("[error] error initiating SNS client")
 	}
 
-	croppedErrMsg := topBytes(errMsg, SNSMessageMaxBytes)
+	croppedErrMsg := truncate(errMsg, SNSMessageMaxBytes)
 	input := &sns.PublishInput{
 		Message:  &croppedErrMsg,
 		TopicArn: wf.Owner,
@@ -271,7 +271,7 @@ func addInterval(someTime time.Time, every model.Every) time.Time {
 	panic(fmt.Sprintf("Every unit '%s' not recognized", every.Unit))
 }
 
-func topBytes(str string, bytes int) string {
+func truncate(str string, bytes int) string {
 	slice := []byte(str)
 	if len(slice) <= bytes {
 		return str
