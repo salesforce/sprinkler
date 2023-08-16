@@ -21,6 +21,9 @@ import (
 	"mce.salesforce.com/sprinkler/orchard"
 )
 
+// https://docs.aws.amazon.com/sns/latest/api/API_Publish.html
+const SNSMessageMaxBytes int = 262144
+
 type ScheduleStatus int
 
 const (
@@ -216,8 +219,9 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 		log.Println("[error] error initiating SNS client")
 	}
 
+	croppedErrMsg := truncate(errMsg, SNSMessageMaxBytes)
 	input := &sns.PublishInput{
-		Message:  &errMsg,
+		Message:  &croppedErrMsg,
 		TopicArn: wf.Owner,
 	}
 
@@ -265,4 +269,12 @@ func addInterval(someTime time.Time, every model.Every) time.Time {
 		return someTime.AddDate(int(every.Quantity), 0, 0)
 	}
 	panic(fmt.Sprintf("Every unit '%s' not recognized", every.Unit))
+}
+
+func truncate(str string, bytes int) string {
+	slice := []byte(str)
+	if len(slice) <= bytes {
+		return str
+	}
+	return string(slice[:bytes])
 }
