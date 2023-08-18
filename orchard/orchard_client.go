@@ -107,15 +107,15 @@ func (c OrchardRestClient) Delete(orchardID string) error {
 type FakeOrchardClient struct {
 }
 
-func (c FakeOrchardClient) Create(wf table.Workflow) (string, error) {
+func (c FakeOrchardClient) Create(wf table.Workflow) ([]string, error) {
 	runner := OrchardStdoutRunner{}
 	results, err := runner.Generate(wf.Artifact, wf.Command)
 	if err != nil {
-		return "", err
+		return []string{""}, err
 	}
 	log.Println("generating workflow", results)
 	time.Sleep(1 * time.Second)
-	return fmt.Sprintf("wf-%s", uuid.New().String()), nil
+	return []string{fmt.Sprintf("wf-%s", uuid.New().String())}, nil
 }
 
 func (c FakeOrchardClient) Activate(wfID string) error {

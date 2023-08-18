@@ -14,14 +14,15 @@ import (
 
 type Workflow struct {
 	gorm.Model
-	Name        string      `gorm:"type:varchar(256);not null;index:workflows_name,unique"`
-	Artifact    string      `gorm:"type:varchar(2048);not null"`
-	Command     string      `gorm:"type:text;not null"`
-	Every       model.Every `gorm:"type:varchar(64);not null"`
-	NextRuntime time.Time   `gorm:"not null"`
-	Backfill    bool        `gorm:"not null"`
-	Owner       *string     `gorm:"type:varchar(2048)"`
-	IsActive    bool        `gorm:"not null"`
+	Name                string      `gorm:"type:varchar(256);not null;index:workflows_name,unique"`
+	Artifact            string      `gorm:"type:varchar(2048);not null"`
+	Command             string      `gorm:"type:text;not null"`
+	Every               model.Every `gorm:"type:varchar(64);not null"`
+	NextRuntime         time.Time   `gorm:"not null"`
+	Backfill            bool        `gorm:"not null"`
+	Owner               *string     `gorm:"type:varchar(2048)"`
+	IsActive            bool        `gorm:"not null"`
+	StaggerStartMinutes uint        `gorm:"default:0"`
 
 	ScheduledWorkflows []ScheduledWorkflow
 }
@@ -39,4 +40,10 @@ type WorkflowSchedulerLock struct {
 	WorkflowID uint      `gorm:"primaryKey"`
 	Token      string    `gorm:"type:varchar(64);not null"`
 	LockTime   time.Time `gorm:"not null"`
+}
+
+type WorkflowActivatorLock struct {
+	ScheduledID uint      `gorm:"primaryKey"`
+	Token       string    `gorm:"type:varchar(64);not null"`
+	LockTime    time.Time `gorm:"not null"`
 }

@@ -28,14 +28,15 @@ type Control struct {
 }
 
 type postWorkflowReq struct {
-	Name        string    `json:"name" binding:"required"`
-	Artifact    string    `json:"artifact" binding:"required"`
-	Command     string    `json:"command" binding:"required"`
-	Every       string    `json:"every" binding:"required"`
-	NextRuntime time.Time `json:"nextRuntime" binding:"required"`
-	Backfill    bool      `json:"backfill"` // default false if absent
-	Owner       *string   `json:"owner"`
-	IsActive    bool      `json:"isActive"` // default false if absent
+	Name                string    `json:"name" binding:"required"`
+	Artifact            string    `json:"artifact" binding:"required"`
+	Command             string    `json:"command" binding:"required"`
+	Every               string    `json:"every" binding:"required"`
+	NextRuntime         time.Time `json:"nextRuntime" binding:"required"`
+	Backfill            bool      `json:"backfill"` // default false if absent
+	Owner               *string   `json:"owner"`
+	IsActive            bool      `json:"isActive"` // default false if absent
+	StaggerStartMinutes uint      `json:"staggerStartMinutes"`
 }
 
 type deleteWorkflowReq struct {
@@ -68,20 +69,21 @@ func (ctrl *Control) putWorkflow(c *gin.Context) {
 	}
 
 	wf := table.Workflow{
-		Name:        body.Name,
-		Artifact:    body.Artifact,
-		Command:     body.Command,
-		Every:       every,
-		NextRuntime: body.NextRuntime,
-		Backfill:    body.Backfill,
-		Owner:       body.Owner,
-		IsActive:    body.IsActive,
+		Name:                body.Name,
+		Artifact:            body.Artifact,
+		Command:             body.Command,
+		Every:               every,
+		NextRuntime:         body.NextRuntime,
+		Backfill:            body.Backfill,
+		Owner:               body.Owner,
+		IsActive:            body.IsActive,
+		StaggerStartMinutes: body.StaggerStartMinutes,
 	}
 	// upsert workflow
 	ctrl.db.Clauses(
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "name"}},
-			DoUpdates: clause.AssignmentColumns([]string{"updated_at", "artifact", "command", "every", "next_runtime", "backfill", "owner", "is_active"}),
+			DoUpdates: clause.AssignmentColumns([]string{"updated_at", "artifact", "command", "every", "next_runtime", "backfill", "owner", "is_active", "stagger_start_minutes"}),
 		}).Create(&wf)
 	ctrl.db.Unscoped().Model(&wf).Update("deleted_at", nil)
 	c.JSON(http.StatusOK, "OK")
