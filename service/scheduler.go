@@ -122,7 +122,7 @@ func (s *Scheduler) cancelWorkflows(
 ) map[string]string {
 	updatedStatuses := statuses
 	for orchardID, status := range statuses {
-		if status == Activated.ToString() || status == Created.ToString() {
+		if status == Activated.ToString() {
 			// cancel activated workflows
 			if err := client.Cancel(orchardID); err != nil {
 				fmt.Printf("[error] error canceling workflow: %s\n", err)
@@ -156,16 +156,15 @@ func (s *Scheduler) activateWorkflow(
 	client *orchard.OrchardRestClient,
 	swf table.ScheduledWorkflow,
 	wf table.Workflow,
-) map[string]string {
-	statuses := make(map[string]string)
-	statuses[swf.OrchardID] = swf.Status
+) string {
 	if err := client.Activate(swf.OrchardID); err != nil {
 		fmt.Printf("[error] error activating workflow: %s\n", err)
 		notifyOwner(wf, err)
-		return s.cancelWorkflows(client, statuses)
+		statuses := make(map[string]string)
+		statuses[swf.OrchardID] = swf.Status
+		return s.deleteWorkflows(client, []string{swf.OrchardID}, statuses)[swf.OrchardID]
 	}
-	statuses[swf.OrchardID] = Activated.ToString()
-	return statuses
+	return Activated.ToString()
 }
 
 func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
@@ -262,7 +261,7 @@ func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
 	wf := table.Workflow{}
 	db.First(&wf, swf.WorkflowID)
 
-	status := s.activateWorkflow(client, swf, wf)[swf.OrchardID]
+	status := s.activateWorkflow(client, swf, wf)
 
 	// update status in scheduled_workflows table
 	db.Transaction(func(tx *gorm.DB) error {
