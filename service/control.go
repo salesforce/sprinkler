@@ -83,7 +83,7 @@ func (ctrl *Control) putWorkflow(c *gin.Context) {
 	ctrl.db.Clauses(
 		clause.OnConflict{
 			Columns:   []clause.Column{{Name: "name"}},
-			DoUpdates: clause.AssignmentColumns([]string{"updated_at", "artifact", "command", "every", "next_runtime", "backfill", "owner", "is_active", "stagger_start_minutes"}),
+			DoUpdates: clause.AssignmentColumns([]string{"updated_at", "artifact", "command", "every", "next_runtime", "backfill", "owner", "is_active", "schedule_delay_minutes"}),
 		}).Create(&wf)
 	ctrl.db.Unscoped().Model(&wf).Update("deleted_at", nil)
 	c.JSON(http.StatusOK, "OK")
