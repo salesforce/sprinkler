@@ -199,11 +199,6 @@ func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
 
 	scheduleStatus := s.createWorkflow(client, wf)
 
-	var scheduleDelayMinutes uint = 0
-	if wf.ScheduleDelayMinutes != 0 {
-		scheduleDelayMinutes = wf.ScheduleDelayMinutes
-	}
-
 	// add to scheduled and update the next run time
 	db.Transaction(func(tx *gorm.DB) error {
 		startTime := time.Now()
@@ -217,7 +212,7 @@ func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
 			}).Error; err != nil {
 				return err
 			}
-			startTime = startTime.Add(time.Duration(scheduleDelayMinutes) * time.Minute)
+			startTime = startTime.Add(time.Duration(wf.ScheduleDelayMinutes) * time.Minute)
 		}
 
 		fmt.Println(wf.Every)
