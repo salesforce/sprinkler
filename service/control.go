@@ -28,15 +28,15 @@ type Control struct {
 }
 
 type postWorkflowReq struct {
-	Name                string    `json:"name" binding:"required"`
-	Artifact            string    `json:"artifact" binding:"required"`
-	Command             string    `json:"command" binding:"required"`
-	Every               string    `json:"every" binding:"required"`
-	NextRuntime         time.Time `json:"nextRuntime" binding:"required"`
-	Backfill            bool      `json:"backfill"` // default false if absent
-	Owner               *string   `json:"owner"`
-	IsActive            bool      `json:"isActive"` // default false if absent
-	StaggerStartMinutes uint      `json:"staggerStartMinutes"`
+	Name                 string    `json:"name" binding:"required"`
+	Artifact             string    `json:"artifact" binding:"required"`
+	Command              string    `json:"command" binding:"required"`
+	Every                string    `json:"every" binding:"required"`
+	NextRuntime          time.Time `json:"nextRuntime" binding:"required"`
+	Backfill             bool      `json:"backfill"` // default false if absent
+	Owner                *string   `json:"owner"`
+	IsActive             bool      `json:"isActive"` // default false if absent
+	ScheduleDelayMinutes uint      `json:"scheduleDelayMinutes"`
 }
 
 type deleteWorkflowReq struct {
@@ -69,15 +69,15 @@ func (ctrl *Control) putWorkflow(c *gin.Context) {
 	}
 
 	wf := table.Workflow{
-		Name:                body.Name,
-		Artifact:            body.Artifact,
-		Command:             body.Command,
-		Every:               every,
-		NextRuntime:         body.NextRuntime,
-		Backfill:            body.Backfill,
-		Owner:               body.Owner,
-		IsActive:            body.IsActive,
-		StaggerStartMinutes: body.StaggerStartMinutes,
+		Name:                 body.Name,
+		Artifact:             body.Artifact,
+		Command:              body.Command,
+		Every:                every,
+		NextRuntime:          body.NextRuntime,
+		Backfill:             body.Backfill,
+		Owner:                body.Owner,
+		IsActive:             body.IsActive,
+		ScheduleDelayMinutes: body.ScheduleDelayMinutes,
 	}
 	// upsert workflow
 	ctrl.db.Clauses(
