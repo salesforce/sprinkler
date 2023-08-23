@@ -17,6 +17,7 @@ var Tables = []interface{}{
 	&table.Workflow{},
 	&table.ScheduledWorkflow{},
 	&table.WorkflowSchedulerLock{},
+	&table.WorkflowActivatorLock{},
 }
 
 var owner = os.Getenv("OWNER_SNS")
