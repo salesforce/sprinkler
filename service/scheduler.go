@@ -160,9 +160,7 @@ func (s *Scheduler) activateWorkflow(
 	if err := client.Activate(swf.OrchardID); err != nil {
 		fmt.Printf("[error] error activating workflow: %s\n", err)
 		notifyOwner(wf, err)
-		statuses := make(map[string]string)
-		statuses[swf.OrchardID] = swf.Status
-		return s.deleteWorkflows(client, []string{swf.OrchardID}, statuses)[swf.OrchardID]
+		return swf.Status
 	}
 	return Activated.ToString()
 }
