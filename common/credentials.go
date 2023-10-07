@@ -51,7 +51,8 @@ func (c AwsCredentials) credentialsProvider() (config.LoadOptionsFunc, error) {
 	if c.AssumeRoleArn != "" {
 		awsConfig, err := config.LoadDefaultConfig(
 			context.TODO(),
-			credProvider, // use static credentials if provided
+			config.WithRegion(c.ClientRegion), // empty string will be ignored
+			credProvider,                      // use static credentials if provided
 		)
 		if err != nil {
 			return nil, err
