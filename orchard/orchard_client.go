@@ -29,6 +29,20 @@ type OrchardRestClient struct {
 	APIKey     string
 }
 
+type OrchardActivityResponse struct {
+	Workflow      OrchardWorkflowResponse    `json:"workflow"`
+	ExtraElements map[string]json.RawMessage `json:"-"`
+}
+
+type OrchardWorkflowResponse struct {
+	Id           string `json:"id"`
+	Name         string `json:"name"`
+	Status       string `json:"status"`
+	CreatedAt    string `json:"createdAt"`
+	ActivatedAt  string `json:"activatedAt"`
+	TerminatedAt string `json:"terminatedAt"`
+}
+
 func (c OrchardRestClient) request(method string, url string, body io.Reader) (*http.Response, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
@@ -84,6 +98,12 @@ func (c OrchardRestClient) create(result string) (string, error) {
 		return "", err
 	}
 	return string(orchardID), nil
+}
+
+func (c OrchardRestClient) GetActivities(orchardID string) (*http.Response, error) {
+	url := fmt.Sprintf("%s/v1/workflow/%s/activities", c.Host, orchardID)
+	res, err := c.request(http.MethodGet, url, nil)
+	return res, err
 }
 
 func (c OrchardRestClient) Activate(orchardID string) error {

@@ -33,7 +33,7 @@ Start control service on a new tab, to later post a Sprinkler json workflow
 go run . service control --config .sprinkler.yaml 
 ```
 
-Post to `http://localhost:8080/v1/workflow` a Sprinkler workflow, example payload from [ExampleWorkflow.scala](https://github.com/salesforce/spade/blob/main/spade-examples/src/main/scala/com/salesforce/mce/spade/examples/ExampleWorkflow.scala)
+PUT a Sprinkler workflow to `http://localhost:8080/v1/workflow`, example payload from [ExampleWorkflow.scala](https://github.com/salesforce/spade/blob/main/spade-examples/src/main/scala/com/salesforce/mce/spade/examples/ExampleWorkflow.scala)
 ```
 {
     "name": "test-workflow",

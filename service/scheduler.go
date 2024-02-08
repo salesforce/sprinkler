@@ -7,6 +7,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -152,6 +153,24 @@ func (s *Scheduler) createWorkflow(
 	return statuses
 }
 
+func (s *Scheduler) checkWorkflowActivationStatus(
+	client *orchard.OrchardRestClient,
+	swf table.ScheduledWorkflow,
+) string {
+	if res, err := client.GetActivities(swf.OrchardID); err != nil {
+		fmt.Printf("[error] error getting workflow status from orchard: %s\n", err)
+	} else {
+		var responseData orchard.OrchardActivityResponse
+		decodeError := json.NewDecoder(res.Body).Decode(&responseData) // TODO: verify this unmarshalling works
+		if decodeError != nil {
+			fmt.Printf("[error] error decoding OrchardActivityResponse: %s\n", decodeError)
+		} else {
+			return responseData.Workflow.Status
+		}
+	}
+	return ""
+}
+
 func (s *Scheduler) activateWorkflow(
 	client *orchard.OrchardRestClient,
 	swf table.ScheduledWorkflow,
@@ -159,8 +178,14 @@ func (s *Scheduler) activateWorkflow(
 ) string {
 	if err := client.Activate(swf.OrchardID); err != nil {
 		fmt.Printf("[error] error activating workflow: %s\n", err)
-		notifyOwner(wf, err)
-		return swf.Status
+		// verify with orchard that workflow status is not 'pending' or 'running'
+		result := s.checkWorkflowActivationStatus(client, swf)
+		if result == "pending" || result == "running" { // TODO: resolve which states are possible after workflow activation
+			fmt.Printf("[warn] workflow %s is already active\n", swf.WorkflowID)
+		} else {
+			notifyOwner(wf, err)
+			return swf.Status
+		}
 	}
 	return Activated.ToString()
 }

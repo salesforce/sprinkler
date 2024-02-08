@@ -7,8 +7,10 @@ package service
 
 import (
 	"fmt"
+	"mce.salesforce.com/sprinkler/orchard"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -67,9 +69,34 @@ func (o *FakeOrchard) activateWorkflow(c *gin.Context) {
 	}
 }
 
+func (o *FakeOrchard) checkWorkflow(c *gin.Context) { // TODO: consider renaming?
+	orchardId := c.Param("id")
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if nameSts, ok := o.Workflows[orchardId]; ok {
+		currentTime := time.Now()
+		c.JSON(http.StatusOK, orchardId)
+		res := orchard.OrchardActivityResponse{
+			Workflow: orchard.OrchardWorkflowResponse{
+				Id:           nameSts.name,
+				Name:         nameSts.name,
+				Status:       nameSts.status,
+				CreatedAt:    currentTime.Add(-time.Second * 2).String(),
+				ActivatedAt:  currentTime.Add(-time.Second).String(),
+				TerminatedAt: currentTime.String(),
+			},
+			ExtraElements: nil,
+		}
+		c.JSON(http.StatusOK, res)
+	} else {
+		c.JSON(http.StatusNotFound, "not exist")
+	}
+}
+
 func (o *FakeOrchard) Run() {
 	r := gin.Default()
 	r.POST("v1/workflow", o.postWorkflow)
 	r.PUT("v1/workflow/:id/activate", o.activateWorkflow)
+	r.GET("v1/workflow/:id/activities", o.checkWorkflow)
 	r.Run(o.address)
 }
