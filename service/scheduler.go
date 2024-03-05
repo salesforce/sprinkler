@@ -65,7 +65,7 @@ type Scheduler struct {
 func (s *Scheduler) Start() {
 	fmt.Println("Scheduler Started")
 	tick := time.Tick(s.Interval)
-	lockTtlTick := time.Tick(time.Minute * 5) // TODO: ok to hardcode to 5 mins?
+	lockTtlTick := time.Tick(time.Minute)
 	for {
 		select {
 		case <-tick:
@@ -207,6 +207,10 @@ func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
 		return
 	}
 
+	// release the lock
+	defer db.Where("workflow_id = ? and token = ?", wf.ID, token).
+		Delete(&table.WorkflowSchedulerLock{})
+
 	fmt.Println("creating workflow", wf.Name, token)
 	client := &orchard.OrchardRestClient{
 		Host:       s.OrchardHost,
@@ -241,10 +245,6 @@ func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
 		}
 		return nil
 	})
-
-	// release the lock
-	db.Where("workflow_id = ? and token = ?", wf.ID, token).
-		Delete(&table.WorkflowSchedulerLock{})
 }
 
 func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
