@@ -59,16 +59,36 @@ type Scheduler struct {
 	OrchardHost       string
 	OrchardAPIKeyName string
 	OrchardAPIKey     string
+	LockTTL           time.Duration
 }
 
 func (s *Scheduler) Start() {
 	fmt.Println("Scheduler Started")
 	tick := time.Tick(s.Interval)
-	for range tick {
-		fmt.Println("tick")
-		s.scheduleWorkflows(database.GetInstance())
-		s.activateWorkflows(database.GetInstance())
+	lockTtlTick := time.Tick(time.Minute * 5) // TODO: ok to hardcode to 5 mins?
+	for {
+		select {
+		case <-tick:
+			fmt.Println("tick")
+			s.scheduleWorkflows(database.GetInstance())
+			s.activateWorkflows(database.GetInstance())
+		case <-lockTtlTick:
+			fmt.Println("lockTtlTick")
+			s.deleteOldLocks(database.GetInstance())
+		}
 	}
+}
+
+func (s *Scheduler) deleteOldLocks(db *gorm.DB) {
+	expiryTime := time.Now().Add(-s.LockTTL)
+
+	db.Model(&table.WorkflowActivatorLock{}).
+		Where("lock_time < ?", expiryTime).
+		Delete(&table.WorkflowActivatorLock{})
+
+	db.Model(&table.WorkflowSchedulerLock{}).
+		Where("lock_time < ?", expiryTime).
+		Delete(&table.WorkflowSchedulerLock{})
 }
 
 func (s *Scheduler) scheduleWorkflows(db *gorm.DB) {
