@@ -269,6 +269,10 @@ func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
 		return
 	}
 
+	// release the lock
+	defer db.Where("scheduled_id = ? and token = ?", swf.ID, token).
+		Delete(&table.WorkflowActivatorLock{})
+
 	fmt.Println("activating workflow", swf.OrchardID, token)
 	client := &orchard.OrchardRestClient{
 		Host:       s.OrchardHost,
@@ -288,10 +292,6 @@ func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
 		}
 		return nil
 	})
-
-	// release the lock
-	db.Where("scheduled_id = ? and token = ?", swf.ID, token).
-		Delete(&table.WorkflowActivatorLock{})
 }
 
 func notifyOwner(wf table.Workflow, orchardErr error) {
