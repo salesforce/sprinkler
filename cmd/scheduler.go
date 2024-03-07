@@ -89,7 +89,7 @@ func init() {
 
 	schedulerCmd.Flags().Duration(
 		"lockTimeout",
-		time.Minute*15,
+		time.Hour,
 		"Workflow schedule and activation lock TTL",
 	)
 	viper.BindPFlag("scheduler.lockTimeout", schedulerCmd.Flags().Lookup("lockTimeout"))
