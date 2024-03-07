@@ -55,32 +55,25 @@ func (s ScheduleStatus) ToString() string {
 
 type Scheduler struct {
 	Interval          time.Duration
+	LockTimeout       time.Duration
 	MaxSize           uint
 	OrchardHost       string
 	OrchardAPIKeyName string
 	OrchardAPIKey     string
-	LockTTL           time.Duration
 }
 
 func (s *Scheduler) Start() {
 	fmt.Println("Scheduler Started")
 	tick := time.Tick(s.Interval)
-	lockTtlTick := time.Tick(time.Minute)
-	for {
-		select {
-		case <-tick:
-			fmt.Println("tick")
-			s.scheduleWorkflows(database.GetInstance())
-			s.activateWorkflows(database.GetInstance())
-		case <-lockTtlTick:
-			fmt.Println("lockTtlTick")
-			s.deleteOldLocks(database.GetInstance())
-		}
+	for range tick {
+		fmt.Println("tick")
+		s.scheduleWorkflows(database.GetInstance())
+		s.activateWorkflows(database.GetInstance())
 	}
 }
 
-func (s *Scheduler) deleteOldLocks(db *gorm.DB) {
-	expiryTime := time.Now().Add(-s.LockTTL)
+func (s *Scheduler) deleteExpiredLocks(db *gorm.DB) {
+	expiryTime := time.Now().Add(-s.LockTimeout)
 
 	db.Model(&table.WorkflowActivatorLock{}).
 		Where("lock_time < ?", expiryTime).
@@ -187,6 +180,8 @@ func (s *Scheduler) activateWorkflow(
 
 func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
 	token := uuid.New().String()
+
+	s.deleteExpiredLocks(db)
 
 	lock := table.WorkflowSchedulerLock{
 		wf.ID,
