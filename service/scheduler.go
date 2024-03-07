@@ -73,6 +73,18 @@ func (s *Scheduler) Start() {
 	}
 }
 
+func (s *Scheduler) deleteExpiredLocks(db *gorm.DB) {
+	expiryTime := time.Now().Add(-s.LockTimeout)
+
+	db.Model(&table.WorkflowActivatorLock{}).
+		Where("lock_time < ?", expiryTime).
+		Delete(&table.WorkflowActivatorLock{})
+
+	db.Model(&table.WorkflowSchedulerLock{}).
+		Where("lock_time < ?", expiryTime).
+		Delete(&table.WorkflowSchedulerLock{})
+}
+
 func (s *Scheduler) scheduleWorkflows(db *gorm.DB) {
 	var workflows []table.Workflow
 
@@ -165,18 +177,6 @@ func (s *Scheduler) activateWorkflow(
 		return swf.Status
 	}
 	return Activated.ToString()
-}
-
-func (s *Scheduler) deleteExpiredLocks(db *gorm.DB) {
-	expiryTime := time.Now().Add(-s.LockTimeout)
-
-	db.Model(&table.WorkflowActivatorLock{}).
-		Where("lock_time < ?", expiryTime).
-		Delete(&table.WorkflowActivatorLock{})
-
-	db.Model(&table.WorkflowSchedulerLock{}).
-		Where("lock_time < ?", expiryTime).
-		Delete(&table.WorkflowSchedulerLock{})
 }
 
 func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
