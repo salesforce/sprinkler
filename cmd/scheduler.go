@@ -14,7 +14,9 @@ import (
 )
 
 type SchedulerCmdOpt struct {
-	Interval          time.Duration
+	Interval    time.Duration
+	LockTimeout time.Duration
+
 	OrchardAddress    string
 	OrchardAPIKeyName string
 	OrchardAPIKey     string
@@ -26,6 +28,7 @@ func getSchedulerCmdOpt() SchedulerCmdOpt {
 		OrchardAddress:    viper.GetString("scheduler.orchard.address"),
 		OrchardAPIKeyName: viper.GetString("scheduler.orchard.apiKeyName"),
 		OrchardAPIKey:     viper.GetString("scheduler.orchard.apiKey"),
+		LockTimeout:       viper.GetDuration("scheduler.lockTimeout"),
 	}
 }
 
@@ -47,6 +50,7 @@ to quickly create a Cobra application.`,
 			OrchardHost:       schedulerCmdOpt.OrchardAddress,
 			OrchardAPIKeyName: schedulerCmdOpt.OrchardAPIKeyName,
 			OrchardAPIKey:     schedulerCmdOpt.OrchardAPIKey,
+			LockTimeout:       schedulerCmdOpt.LockTimeout,
 		}
 		scheduler.Start()
 	},
@@ -82,4 +86,11 @@ func init() {
 		"api key to orchard service",
 	)
 	viper.BindPFlag("scheduler.orchard.apiKey", schedulerCmd.Flags().Lookup("orchard"))
+
+	schedulerCmd.Flags().Duration(
+		"lockTimeout",
+		time.Hour,
+		"Workflow schedule and activation lock TTL",
+	)
+	viper.BindPFlag("scheduler.lockTimeout", schedulerCmd.Flags().Lookup("lockTimeout"))
 }

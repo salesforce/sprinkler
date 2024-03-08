@@ -55,6 +55,7 @@ func (s ScheduleStatus) ToString() string {
 
 type Scheduler struct {
 	Interval          time.Duration
+	LockTimeout       time.Duration
 	MaxSize           uint
 	OrchardHost       string
 	OrchardAPIKeyName string
@@ -66,9 +67,22 @@ func (s *Scheduler) Start() {
 	tick := time.Tick(s.Interval)
 	for range tick {
 		fmt.Println("tick")
+		s.deleteExpiredLocks(database.GetInstance())
 		s.scheduleWorkflows(database.GetInstance())
 		s.activateWorkflows(database.GetInstance())
 	}
+}
+
+func (s *Scheduler) deleteExpiredLocks(db *gorm.DB) {
+	expiryTime := time.Now().Add(-s.LockTimeout)
+
+	db.Model(&table.WorkflowActivatorLock{}).
+		Where("lock_time < ?", expiryTime).
+		Delete(&table.WorkflowActivatorLock{})
+
+	db.Model(&table.WorkflowSchedulerLock{}).
+		Where("lock_time < ?", expiryTime).
+		Delete(&table.WorkflowSchedulerLock{})
 }
 
 func (s *Scheduler) scheduleWorkflows(db *gorm.DB) {
@@ -187,6 +201,10 @@ func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
 		return
 	}
 
+	// release the lock
+	defer db.Where("workflow_id = ? and token = ?", wf.ID, token).
+		Delete(&table.WorkflowSchedulerLock{})
+
 	fmt.Println("creating workflow", wf.Name, token)
 	client := &orchard.OrchardRestClient{
 		Host:       s.OrchardHost,
@@ -221,10 +239,6 @@ func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
 		}
 		return nil
 	})
-
-	// release the lock
-	db.Where("workflow_id = ? and token = ?", wf.ID, token).
-		Delete(&table.WorkflowSchedulerLock{})
 }
 
 func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
@@ -249,6 +263,10 @@ func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
 		return
 	}
 
+	// release the lock
+	defer db.Where("scheduled_id = ? and token = ?", swf.ID, token).
+		Delete(&table.WorkflowActivatorLock{})
+
 	fmt.Println("activating workflow", swf.OrchardID, token)
 	client := &orchard.OrchardRestClient{
 		Host:       s.OrchardHost,
@@ -268,10 +286,6 @@ func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
 		}
 		return nil
 	})
-
-	// release the lock
-	db.Where("scheduled_id = ? and token = ?", swf.ID, token).
-		Delete(&table.WorkflowActivatorLock{})
 }
 
 func notifyOwner(wf table.Workflow, orchardErr error) {
