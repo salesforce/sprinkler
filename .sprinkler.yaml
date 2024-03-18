@@ -19,6 +19,7 @@ control:
 scheduler:
   interval: "1s"
   lockTimeout: "1h"
+  scheduledWorkflowTimeout: "720h"
   orchard:
     address: "http://ws:8082"
     # apiKeyName: "x-api-key"
