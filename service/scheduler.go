@@ -55,8 +55,8 @@ func (s ScheduleStatus) ToString() string {
 
 type Scheduler struct {
 	Interval          time.Duration
-	LockTimeout       time.Duration
 	MaxSize           uint
+	LockTimeout       time.Duration
 	OrchardHost       string
 	OrchardAPIKeyName string
 	OrchardAPIKey     string
