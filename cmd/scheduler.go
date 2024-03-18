@@ -14,21 +14,22 @@ import (
 )
 
 type SchedulerCmdOpt struct {
-	Interval    time.Duration
-	LockTimeout time.Duration
-
-	OrchardAddress    string
-	OrchardAPIKeyName string
-	OrchardAPIKey     string
+	Interval                 time.Duration
+	LockTimeout              time.Duration
+	OrchardAddress           string
+	OrchardAPIKeyName        string
+	OrchardAPIKey            string
+	ScheduledWorkflowTimeout time.Duration
 }
 
 func getSchedulerCmdOpt() SchedulerCmdOpt {
 	return SchedulerCmdOpt{
-		Interval:          viper.GetDuration("scheduler.interval"),
-		OrchardAddress:    viper.GetString("scheduler.orchard.address"),
-		OrchardAPIKeyName: viper.GetString("scheduler.orchard.apiKeyName"),
-		OrchardAPIKey:     viper.GetString("scheduler.orchard.apiKey"),
-		LockTimeout:       viper.GetDuration("scheduler.lockTimeout"),
+		Interval:                 viper.GetDuration("scheduler.interval"),
+		LockTimeout:              viper.GetDuration("scheduler.lockTimeout"),
+		OrchardAddress:           viper.GetString("scheduler.orchard.address"),
+		OrchardAPIKeyName:        viper.GetString("scheduler.orchard.apiKeyName"),
+		OrchardAPIKey:            viper.GetString("scheduler.orchard.apiKey"),
+		ScheduledWorkflowTimeout: viper.GetDuration("scheduler.scheduledWorkflowTimeout"),
 	}
 }
 
@@ -93,4 +94,14 @@ func init() {
 		"Workflow schedule and activation lock TTL",
 	)
 	viper.BindPFlag("scheduler.lockTimeout", schedulerCmd.Flags().Lookup("lockTimeout"))
+
+	schedulerCmd.Flags().Duration(
+		"scheduledWorkflowTimeout",
+		time.Hour*24*30,
+		"scheduled_workflow entries are considered expired if updated_at older than this duration",
+	)
+	viper.BindPFlag(
+		"scheduler.scheduledWorkflowTimeout",
+		schedulerCmd.Flags().Lookup("scheduledWorkflowTimeout"),
+	)
 }

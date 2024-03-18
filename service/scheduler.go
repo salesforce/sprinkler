@@ -54,12 +54,13 @@ func (s ScheduleStatus) ToString() string {
 }
 
 type Scheduler struct {
-	Interval          time.Duration
-	LockTimeout       time.Duration
-	MaxSize           uint
-	OrchardHost       string
-	OrchardAPIKeyName string
-	OrchardAPIKey     string
+	Interval                 time.Duration
+	LockTimeout              time.Duration
+	MaxSize                  uint
+	OrchardHost              string
+	OrchardAPIKeyName        string
+	OrchardAPIKey            string
+	ScheduledWorkflowTimeout time.Duration
 }
 
 func (s *Scheduler) Start() {
@@ -83,6 +84,14 @@ func (s *Scheduler) deleteExpiredLocks(db *gorm.DB) {
 	db.Model(&table.WorkflowSchedulerLock{}).
 		Where("lock_time < ?", expiryTime).
 		Delete(&table.WorkflowSchedulerLock{})
+}
+
+func (s *Scheduler) deleteExpiredScheduledWorkflows(db *gorm.DB) {
+	expiryTime := time.Now().Add(-s.ScheduledWorkflowTimeout)
+
+	db.Model(&table.ScheduledWorkflow{}).
+		Where("updated_at < ?", expiryTime).
+		Delete(&table.ScheduledWorkflow{})
 }
 
 func (s *Scheduler) scheduleWorkflows(db *gorm.DB) {
