@@ -14,22 +14,20 @@ import (
 )
 
 type SchedulerCmdOpt struct {
-	Interval                 time.Duration
-	LockTimeout              time.Duration
-	OrchardAddress           string
-	OrchardAPIKeyName        string
-	OrchardAPIKey            string
-	ScheduledWorkflowTimeout time.Duration
+	Interval          time.Duration
+	LockTimeout       time.Duration
+	OrchardAddress    string
+	OrchardAPIKeyName string
+	OrchardAPIKey     string
 }
 
 func getSchedulerCmdOpt() SchedulerCmdOpt {
 	return SchedulerCmdOpt{
-		Interval:                 viper.GetDuration("scheduler.interval"),
-		LockTimeout:              viper.GetDuration("scheduler.lockTimeout"),
-		OrchardAddress:           viper.GetString("scheduler.orchard.address"),
-		OrchardAPIKeyName:        viper.GetString("scheduler.orchard.apiKeyName"),
-		OrchardAPIKey:            viper.GetString("scheduler.orchard.apiKey"),
-		ScheduledWorkflowTimeout: viper.GetDuration("scheduler.scheduledWorkflowTimeout"),
+		Interval:          viper.GetDuration("scheduler.interval"),
+		LockTimeout:       viper.GetDuration("scheduler.lockTimeout"),
+		OrchardAddress:    viper.GetString("scheduler.orchard.address"),
+		OrchardAPIKeyName: viper.GetString("scheduler.orchard.apiKeyName"),
+		OrchardAPIKey:     viper.GetString("scheduler.orchard.apiKey"),
 	}
 }
 
@@ -48,10 +46,10 @@ to quickly create a Cobra application.`,
 		scheduler := &service.Scheduler{
 			Interval:          schedulerCmdOpt.Interval,
 			MaxSize:           10,
+			LockTimeout:       schedulerCmdOpt.LockTimeout,
 			OrchardHost:       schedulerCmdOpt.OrchardAddress,
 			OrchardAPIKeyName: schedulerCmdOpt.OrchardAPIKeyName,
 			OrchardAPIKey:     schedulerCmdOpt.OrchardAPIKey,
-			LockTimeout:       schedulerCmdOpt.LockTimeout,
 		}
 		scheduler.Start()
 	},
@@ -94,14 +92,4 @@ func init() {
 		"Workflow schedule and activation lock TTL",
 	)
 	viper.BindPFlag("scheduler.lockTimeout", schedulerCmd.Flags().Lookup("lockTimeout"))
-
-	schedulerCmd.Flags().Duration(
-		"scheduledWorkflowTimeout",
-		time.Hour*24*30,
-		"scheduled_workflow entries are considered expired if updated_at older than this duration",
-	)
-	viper.BindPFlag(
-		"scheduler.scheduledWorkflowTimeout",
-		schedulerCmd.Flags().Lookup("scheduledWorkflowTimeout"),
-	)
 }
