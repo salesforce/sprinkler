@@ -71,6 +71,7 @@ func (s *Scheduler) Start() {
 		s.deleteExpiredLocks(database.GetInstance())
 		s.scheduleWorkflows(database.GetInstance())
 		s.activateWorkflows(database.GetInstance())
+		s.deleteExpiredScheduledWorkflows(database.GetInstance())
 	}
 }
 
