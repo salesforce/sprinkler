@@ -45,8 +45,8 @@ to quickly create a Cobra application.`,
 		schedulerCmdOpt := getSchedulerCmdOpt()
 		scheduler := &service.Scheduler{
 			Interval:          schedulerCmdOpt.Interval,
-			MaxSize:           10,
 			LockTimeout:       schedulerCmdOpt.LockTimeout,
+			MaxSize:           10,
 			OrchardHost:       schedulerCmdOpt.OrchardAddress,
 			OrchardAPIKeyName: schedulerCmdOpt.OrchardAPIKeyName,
 			OrchardAPIKey:     schedulerCmdOpt.OrchardAPIKey,
