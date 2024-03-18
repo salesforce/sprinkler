@@ -18,7 +18,7 @@ func getCleanupCmdOpt() CleanupCmdOpt {
 	}
 }
 
-// schedulerCmd represents the scheduler command
+// represents the cleanup command
 var cleanupCmd = &cobra.Command{
 	Use:   "cleanup",
 	Short: "Perform periodic database cleanup tasks",
@@ -41,6 +41,6 @@ func init() {
 	)
 	viper.BindPFlag(
 		"cleanup.scheduledWorkflowTimeout",
-		schedulerCmd.Flags().Lookup("scheduledWorkflowTimeout"),
+		cleanupCmd.Flags().Lookup("scheduledWorkflowTimeout"),
 	)
 }
