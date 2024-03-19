@@ -34,7 +34,7 @@ var cleanupCmd = &cobra.Command{
 
 func init() {
 	serviceCmd.AddCommand(cleanupCmd)
-	
+
 	cleanupCmd.Flags().Duration(
 		"scheduledWorkflowTimeout",
 		time.Hour*24*30,
