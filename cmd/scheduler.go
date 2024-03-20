@@ -15,7 +15,6 @@ import (
 
 type SchedulerCmdOpt struct {
 	Interval          time.Duration
-	LockTimeout       time.Duration
 	OrchardAddress    string
 	OrchardAPIKeyName string
 	OrchardAPIKey     string
@@ -24,7 +23,6 @@ type SchedulerCmdOpt struct {
 func getSchedulerCmdOpt() SchedulerCmdOpt {
 	return SchedulerCmdOpt{
 		Interval:          viper.GetDuration("scheduler.interval"),
-		LockTimeout:       viper.GetDuration("scheduler.lockTimeout"),
 		OrchardAddress:    viper.GetString("scheduler.orchard.address"),
 		OrchardAPIKeyName: viper.GetString("scheduler.orchard.apiKeyName"),
 		OrchardAPIKey:     viper.GetString("scheduler.orchard.apiKey"),
@@ -45,7 +43,6 @@ to quickly create a Cobra application.`,
 		schedulerCmdOpt := getSchedulerCmdOpt()
 		scheduler := &service.Scheduler{
 			Interval:          schedulerCmdOpt.Interval,
-			LockTimeout:       schedulerCmdOpt.LockTimeout,
 			MaxSize:           10,
 			OrchardHost:       schedulerCmdOpt.OrchardAddress,
 			OrchardAPIKeyName: schedulerCmdOpt.OrchardAPIKeyName,
