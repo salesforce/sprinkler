@@ -25,7 +25,9 @@ scheduler:
     # apiKey: "changeme"
 
 cleanup:
-  scheduledWorkflowTimeout: "720h"
+  scheduledWorkflow: "720h"
+  workflowActivationLock: "1h"
+  workflowSchedulerLock: "1h"
 
 # configs for static credentials or role arn to assume
 # aws:
