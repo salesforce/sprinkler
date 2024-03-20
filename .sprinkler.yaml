@@ -18,11 +18,15 @@ control:
 
 scheduler:
   interval: "1s"
-  lockTimeout: "1h"
   orchard:
     address: "http://ws:8082"
     # apiKeyName: "x-api-key"
     # apiKey: "changeme"
+
+cleanup:
+  scheduledWorkflow: "720h"
+  workflowActivationLock: "1h"
+  workflowSchedulerLock: "1h"
 
 # configs for static credentials or role arn to assume
 # aws:
