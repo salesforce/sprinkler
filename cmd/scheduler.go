@@ -85,11 +85,4 @@ func init() {
 		"api key to orchard service",
 	)
 	viper.BindPFlag("scheduler.orchard.apiKey", schedulerCmd.Flags().Lookup("orchard"))
-
-	schedulerCmd.Flags().Duration(
-		"lockTimeout",
-		time.Hour,
-		"Workflow schedule and activation lock TTL",
-	)
-	viper.BindPFlag("scheduler.lockTimeout", schedulerCmd.Flags().Lookup("lockTimeout"))
 }

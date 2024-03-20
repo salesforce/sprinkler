@@ -9,12 +9,16 @@ import (
 )
 
 type CleanupCmdOpt struct {
-	ScheduledWorkflowTimeout time.Duration
+	ScheduledWorkflowTimeout      time.Duration
+	WorkflowActivationLockTimeout time.Duration
+	WorkflowSchedulerLockTimeout  time.Duration
 }
 
 func getCleanupCmdOpt() CleanupCmdOpt {
 	return CleanupCmdOpt{
-		ScheduledWorkflowTimeout: viper.GetDuration("cleanup.scheduledWorkflowTimeout"),
+		ScheduledWorkflowTimeout:      viper.GetDuration("cleanup.scheduledWorkflowTimeout"),
+		WorkflowActivationLockTimeout: viper.GetDuration("cleanup.workflowActivationLock"),
+		WorkflowSchedulerLockTimeout:  viper.GetDuration("cleanup.workflowSchedulerLock"),
 	}
 }
 
@@ -26,7 +30,9 @@ var cleanupCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cleanupCmdOpt := getCleanupCmdOpt()
 		cleanup := &service.Cleanup{
-			ScheduledWorkflowTimeout: cleanupCmdOpt.ScheduledWorkflowTimeout,
+			ScheduledWorkflowTimeout:      cleanupCmdOpt.ScheduledWorkflowTimeout,
+			WorkflowActivationLockTimeout: cleanupCmdOpt.WorkflowActivationLockTimeout,
+			WorkflowSchedulerLockTimeout:  cleanupCmdOpt.WorkflowSchedulerLockTimeout,
 		}
 		cleanup.Run()
 	},
@@ -36,12 +42,23 @@ func init() {
 	serviceCmd.AddCommand(cleanupCmd)
 
 	cleanupCmd.Flags().Duration(
-		"scheduledWorkflowTimeout",
+		"scheduledWorkflow",
 		time.Hour*24*30,
 		"scheduled_workflow entries are considered expired if updated_at older than this duration",
 	)
-	viper.BindPFlag(
-		"cleanup.scheduledWorkflowTimeout",
-		cleanupCmd.Flags().Lookup("scheduledWorkflowTimeout"),
+	viper.BindPFlag("cleanup.scheduledWorkflow", cleanupCmd.Flags().Lookup("scheduledWorkflow"))
+
+	cleanupCmd.Flags().Duration(
+		"workflowActivationLock",
+		time.Hour,
+		"Workflow activation lock TTL",
 	)
+	viper.BindPFlag("cleanup.workflowActivationLock", cleanupCmd.Flags().Lookup("workflowActivationLock"))
+
+	cleanupCmd.Flags().Duration(
+		"workflowSchedulerLock",
+		time.Hour,
+		"Workflow scheduleer lock TTL",
+	)
+	viper.BindPFlag("cleanup.workflowSchedulerLock", cleanupCmd.Flags().Lookup("workflowSchedulerLock"))
 }
