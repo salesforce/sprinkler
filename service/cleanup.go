@@ -15,17 +15,16 @@ type Cleanup struct {
 }
 
 func (s *Cleanup) Run() {
-	fmt.Println("Deleting expired activation locks...")
+	fmt.Println("Cleanup started")
 	s.deleteExpiredActivatorLocks(database.GetInstance())
-	fmt.Println("Deleting expired scheduler locks...")
 	s.deleteExpiredSchedulerLocks(database.GetInstance())
-	fmt.Println("Deleting expired scheduled workflows...")
 	s.deleteExpiredScheduledWorkflows(database.GetInstance())
 	fmt.Println("Cleanup complete")
 }
 
 func (s *Cleanup) deleteExpiredActivatorLocks(db *gorm.DB) {
 	expiryTime := time.Now().Add(-s.WorkflowActivationLockTimeout)
+	fmt.Printf("Deleting activation locks older than %s ...\n", expiryTime)
 
 	db.Model(&table.WorkflowActivatorLock{}).
 		Where("lock_time < ?", expiryTime).
@@ -34,6 +33,7 @@ func (s *Cleanup) deleteExpiredActivatorLocks(db *gorm.DB) {
 
 func (s *Cleanup) deleteExpiredSchedulerLocks(db *gorm.DB) {
 	expiryTime := time.Now().Add(-s.WorkflowSchedulerLockTimeout)
+	fmt.Printf("Deleting scheduler locks older than %s ...\n", expiryTime)
 
 	db.Model(&table.WorkflowSchedulerLock{}).
 		Where("lock_time < ?", expiryTime).
@@ -42,8 +42,9 @@ func (s *Cleanup) deleteExpiredSchedulerLocks(db *gorm.DB) {
 
 func (s *Cleanup) deleteExpiredScheduledWorkflows(db *gorm.DB) {
 	expiryTime := time.Now().Add(-s.ScheduledWorkflowTimeout)
+	fmt.Printf("Deleting scheduled workflows older than %s ...\n", expiryTime)
 
-	db.Unscoped().Model(&table.ScheduledWorkflow{}).
+	db.Model(&table.ScheduledWorkflow{}).
 		Where("updated_at < ?", expiryTime).
-		Delete(&table.ScheduledWorkflow{})
+		Unscoped().Delete(&table.ScheduledWorkflow{})
 }

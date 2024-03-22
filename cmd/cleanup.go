@@ -16,7 +16,7 @@ type CleanupCmdOpt struct {
 
 func getCleanupCmdOpt() CleanupCmdOpt {
 	return CleanupCmdOpt{
-		ScheduledWorkflowTimeout:      viper.GetDuration("cleanup.scheduledWorkflowTimeout"),
+		ScheduledWorkflowTimeout:      viper.GetDuration("cleanup.scheduledWorkflow"),
 		WorkflowActivationLockTimeout: viper.GetDuration("cleanup.workflowActivationLock"),
 		WorkflowSchedulerLockTimeout:  viper.GetDuration("cleanup.workflowSchedulerLock"),
 	}
