@@ -44,7 +44,7 @@ func (s *Cleanup) deleteExpiredScheduledWorkflows(db *gorm.DB) {
 	expiryTime := time.Now().Add(-s.ScheduledWorkflowTimeout)
 	fmt.Printf("Deleting scheduled workflows older than %s ...\n", expiryTime)
 
-	db.Unscoped().Model(&table.ScheduledWorkflow{}).
+	db.Model(&table.ScheduledWorkflow{}).
 		Where("updated_at < ?", expiryTime).
-		Delete(&table.ScheduledWorkflow{})
+		Unscoped().Delete(&table.ScheduledWorkflow{})
 }
