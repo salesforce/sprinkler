@@ -15,10 +15,9 @@ type Cleanup struct {
 }
 
 func (s *Cleanup) Run() {
+	fmt.Println("Cleanup started")
 	s.deleteExpiredActivatorLocks(database.GetInstance())
-	fmt.Println("Deleting expired scheduler locks...")
 	s.deleteExpiredSchedulerLocks(database.GetInstance())
-	fmt.Println("Deleting expired scheduled workflows...")
 	s.deleteExpiredScheduledWorkflows(database.GetInstance())
 	fmt.Println("Cleanup complete")
 }
