@@ -107,7 +107,7 @@ func (s *Scheduler) deleteWorkflows(
 	for _, orchardID := range workflowIDs {
 		// delete created workflows
 		if err := client.Delete(orchardID); err != nil {
-			fmt.Printf("[error] error deleting workflow: %s\n", err)
+			fmt.Printf("[error] error deleting workflow (orchard_id: %s): %s\n", orchardID, err)
 			updatedStatuses[orchardID] = DeleteFailed.ToString()
 		} else {
 			updatedStatuses[orchardID] = Deleted.ToString()
@@ -158,7 +158,7 @@ func (s *Scheduler) activateWorkflow(
 	wf table.Workflow,
 ) string {
 	if err := client.Activate(swf.OrchardID); err != nil {
-		fmt.Printf("[error] error activating workflow (name: %s): %s\n", wf.Name, err)
+		fmt.Printf("[error] error activating workflow (name: %s, orchard_id: %s): %s\n", wf.Name, swf.OrchardID, err)
 		notifyOwner(wf, err)
 		return swf.Status
 	}
