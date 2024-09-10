@@ -107,7 +107,7 @@ func (s *Scheduler) deleteWorkflows(
 	for _, orchardID := range workflowIDs {
 		// delete created workflows
 		if err := client.Delete(orchardID); err != nil {
-			fmt.Printf("[error] error deleting workflow: %s\n", err)
+			fmt.Printf("[error] error deleting workflow (orchard_id: %s): %s\n", orchardID, err)
 			updatedStatuses[orchardID] = DeleteFailed.ToString()
 		} else {
 			updatedStatuses[orchardID] = Deleted.ToString()
@@ -142,7 +142,7 @@ func (s *Scheduler) createWorkflow(
 	statuses := make(map[string]string)
 	createdIDs, err := client.Create(wf)
 	if err != nil {
-		fmt.Printf("[error] error creating workflow: %s\n", err)
+		fmt.Printf("[error] error creating workflow (name: %s): %s\n", wf.Name, err)
 		notifyOwner(wf, err)
 		return s.deleteWorkflows(client, createdIDs, statuses)
 	}
@@ -158,7 +158,7 @@ func (s *Scheduler) activateWorkflow(
 	wf table.Workflow,
 ) string {
 	if err := client.Activate(swf.OrchardID); err != nil {
-		fmt.Printf("[error] error activating workflow: %s\n", err)
+		fmt.Printf("[error] error activating workflow (name: %s, orchard_id: %s): %s\n", wf.Name, swf.OrchardID, err)
 		notifyOwner(wf, err)
 		return swf.Status
 	}
@@ -169,13 +169,13 @@ func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
 	token := uuid.New().String()
 
 	lock := table.WorkflowSchedulerLock{
-		wf.ID,
-		token,
-		time.Now(),
+		WorkflowID: wf.ID,
+		Token: token,
+		LockTime: time.Now(),
 	}
 	result := db.Create(&lock)
 	if result.Error != nil {
-		fmt.Printf("something else is creating this workflow %v! skip...\n", wf.ID)
+		fmt.Printf("something else is creating this workflow (name: %s, workflow_id: %v)! skip...\n", wf.Name, wf.ID)
 		return
 	}
 
@@ -183,7 +183,7 @@ func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
 	db.First(&existingLock, wf.ID)
 
 	if existingLock.Token != token {
-		fmt.Printf("something else is creating this workflow %v! skip...\n", wf.ID)
+		fmt.Printf("something else is creating this workflow (name: %s, workflow_id: %v)! skip...\n", wf.Name, wf.ID)
 		return
 	}
 
@@ -231,13 +231,13 @@ func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
 	token := uuid.New().String()
 
 	lock := table.WorkflowActivatorLock{
-		swf.ID,
-		token,
-		time.Now(),
+		ScheduledID: swf.ID,
+		Token: token,
+		LockTime: time.Now(),
 	}
 	result := db.Create(&lock)
 	if result.Error != nil {
-		fmt.Printf("something else is activating this scheduled workflow %v! skip...\n", swf.ID)
+		fmt.Printf("something else is activating this scheduled workflow (scheduled_workflow_id: %v)! skip...\n", swf.ID)
 		return
 	}
 
@@ -245,7 +245,7 @@ func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
 	db.First(&existingLock, swf.ID)
 
 	if existingLock.Token != token {
-		fmt.Printf("something else is activating this scheduled workflow %v! skip...\n", swf.ID)
+		fmt.Printf("something else is activating this scheduled workflow (scheduled_workflow_id: %v)! skip...\n", swf.ID)
 		return
 	}
 
@@ -253,7 +253,6 @@ func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
 	defer db.Where("scheduled_id = ? and token = ?", swf.ID, token).
 		Delete(&table.WorkflowActivatorLock{})
 
-	fmt.Println("activating workflow", swf.OrchardID, token)
 	client := &orchard.OrchardRestClient{
 		Host:       s.OrchardHost,
 		APIKeyName: s.OrchardAPIKeyName,
@@ -263,6 +262,7 @@ func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
 	wf := table.Workflow{}
 	db.First(&wf, swf.WorkflowID)
 
+	fmt.Printf("activating workflow (name: %s, orchard_id: %s, token: %s)\n", wf.Name, swf.OrchardID, token)
 	status := s.activateWorkflow(client, swf, wf)
 
 	// update status in scheduled_workflows table
@@ -276,8 +276,9 @@ func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
 
 func notifyOwner(wf table.Workflow, orchardErr error) {
 	errMsg := fmt.Sprintf(
-		"[error] Failed to schedule workflow %v with error %q\n",
-		wf,
+		"[error] Failed to schedule workflow (name: %s, workflow_id: %v) with error %q\n",
+		wf.Name,
+		wf.ID,
 		orchardErr,
 	)
 	log.Println(errMsg)
