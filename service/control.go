@@ -109,6 +109,31 @@ func (ctrl *Control) deleteWorkflow(c *gin.Context) {
 	}
 }
 
+func (ctrl *Control) getWorkflow(c *gin.Context) {
+	name := c.Param("name")
+	var workflow table.Workflow
+	dbRes := ctrl.db.Model(&table.Workflow{}).
+		Where("name = ?", name).
+		Find(&workflow)
+
+	if dbRes.Error != nil || dbRes.RowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"Workflow not found:": fmt.Sprintf("name=%s", name)})
+	} else {
+		resp := postWorkflowReq{
+			Name: workflow.Name, 
+			Artifact: workflow.Artifact, 
+			Command: workflow.Command, 
+			Every: workflow.Every.String(), 
+			NextRuntime: workflow.NextRuntime,
+			Backfill: workflow.Backfill, 
+			Owner: workflow.Owner, 
+			IsActive: workflow.IsActive, 
+			ScheduleDelayMinutes: workflow.ScheduleDelayMinutes}
+	
+		c.IndentedJSON(http.StatusOK, resp)
+	}
+}
+
 func APIKeyAuth(key string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		k := c.GetHeader("x-api-key")
@@ -133,6 +158,7 @@ func (ctrl *Control) Run() {
 	{
 		v1.PUT("/workflow", ctrl.putWorkflow)
 		v1.DELETE("/workflow", ctrl.deleteWorkflow)
+		v1.GET("/workflow/:name", ctrl.getWorkflow)
 	}
 
 	r.GET("__status", func(c *gin.Context) {
