@@ -18,10 +18,10 @@ var cfgFile string
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "sprinkler",
-	Short: "Workflow scheculer built for orchard",
+	Short: "Workflow scheduler built for orchard",
 	Long: `Sprinkler CLI provides all the necessary commands to setup the database, test
 orchard servers and other services to run and manage workflows for orchard
-orchastration server`,
+orchestration server`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
