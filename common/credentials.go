@@ -8,7 +8,6 @@ package common
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -29,17 +28,9 @@ type AwsCredentials struct {
 }
 
 func WithAwsCredentials() AwsCredentials {
-	clientRegion := viper.GetString("aws.clientRegion")
-	if clientRegion == "" {
-		clientRegion = os.Getenv("AWS_REGION")
-	}
-	assumeRoleArn := viper.GetString("aws.assumeRoleArn")
-	if assumeRoleArn == "" {
-		assumeRoleArn = os.Getenv("AWS_ASSUME_ROLE_ARN")
-	}
 	return AwsCredentials{
-		ClientRegion:   clientRegion,
-		AssumeRoleArn:  assumeRoleArn,
+		ClientRegion:   viper.GetString("aws.clientRegion"),
+		AssumeRoleArn:  viper.GetString("aws.assumeRoleArn"),
 		AwsAccessKeyId: viper.GetString("aws.staticCredentials.awsAccessKeyId"),
 		AwsSecretKey:   viper.GetString("aws.staticCredentials.awsSecretKey"),
 		SessionToken:   viper.GetString("aws.staticCredentials.sessionToken"),
