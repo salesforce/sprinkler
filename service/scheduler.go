@@ -63,6 +63,8 @@ type Scheduler struct {
 
 func (s *Scheduler) Start() {
 	fmt.Println("Scheduler Started")
+	fmt.Printf("Orchard host: %s", s.OrchardHost)
+	fmt.Printf("Orchard API key name: %s", s.OrchardAPIKeyName)
 	tick := time.Tick(s.Interval)
 	for range tick {
 		fmt.Println("tick")
@@ -170,8 +172,8 @@ func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
 
 	lock := table.WorkflowSchedulerLock{
 		WorkflowID: wf.ID,
-		Token: token,
-		LockTime: time.Now(),
+		Token:      token,
+		LockTime:   time.Now(),
 	}
 	result := db.Create(&lock)
 	if result.Error != nil {
@@ -232,8 +234,8 @@ func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
 
 	lock := table.WorkflowActivatorLock{
 		ScheduledID: swf.ID,
-		Token: token,
-		LockTime: time.Now(),
+		Token:       token,
+		LockTime:    time.Now(),
 	}
 	result := db.Create(&lock)
 	if result.Error != nil {
