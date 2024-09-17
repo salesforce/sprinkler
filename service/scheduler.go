@@ -63,8 +63,6 @@ type Scheduler struct {
 
 func (s *Scheduler) Start() {
 	fmt.Println("Scheduler Started")
-	fmt.Printf("Orchard host: %s", s.OrchardHost)
-	fmt.Printf("Orchard API key name: %s", s.OrchardAPIKeyName)
 	tick := time.Tick(s.Interval)
 	for range tick {
 		fmt.Println("tick")
