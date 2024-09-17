@@ -8,6 +8,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -62,7 +63,8 @@ func initConfig() {
 		viper.SetConfigName(".sprinkler")
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
+	viper.AutomaticEnv()                                   // read in environment variables that match
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_")) // replaces "." with "_" for environment variables
 
 	// If a config file is found, read it in, otherwise show error
 	err := viper.ReadInConfig()

@@ -170,8 +170,8 @@ func (s *Scheduler) lockAndCreate(db *gorm.DB, wf table.Workflow) {
 
 	lock := table.WorkflowSchedulerLock{
 		WorkflowID: wf.ID,
-		Token: token,
-		LockTime: time.Now(),
+		Token:      token,
+		LockTime:   time.Now(),
 	}
 	result := db.Create(&lock)
 	if result.Error != nil {
@@ -232,8 +232,8 @@ func (s *Scheduler) lockAndActivate(db *gorm.DB, swf table.ScheduledWorkflow) {
 
 	lock := table.WorkflowActivatorLock{
 		ScheduledID: swf.ID,
-		Token: token,
-		LockTime: time.Now(),
+		Token:       token,
+		LockTime:    time.Now(),
 	}
 	result := db.Create(&lock)
 	if result.Error != nil {
