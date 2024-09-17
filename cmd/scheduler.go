@@ -6,10 +6,8 @@
 package cmd
 
 import (
-	"os"
 	"time"
 
-	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"mce.salesforce.com/sprinkler/service"
@@ -23,22 +21,10 @@ type SchedulerCmdOpt struct {
 }
 
 func getSchedulerCmdOpt() SchedulerCmdOpt {
-	schedulerInterval := viper.GetString("scheduler.interval")
-	if schedulerInterval == "" {
-		schedulerInterval = os.Getenv("SCHEDULER_INTERVAL")
-	}
-	orchardAddress := viper.GetString("scheduler.orchard.address")
-	if orchardAddress == "" {
-		orchardAddress = os.Getenv("SCHEDULER_ORCHARD_ADDRESS")
-	}
-	orchardAPIKeyName := viper.GetString("scheduler.orchard.apiKeyName")
-	if orchardAPIKeyName == "" {
-		orchardAPIKeyName = os.Getenv("SCHEDULER_ORCHARD_API_KEY_NAME")
-	}
 	return SchedulerCmdOpt{
-		Interval:          cast.ToDuration(schedulerInterval),
-		OrchardAddress:    orchardAddress,
-		OrchardAPIKeyName: orchardAPIKeyName,
+		Interval:          viper.GetDuration("scheduler.interval"),
+		OrchardAddress:    viper.GetString("scheduler.orchard.address"),
+		OrchardAPIKeyName: viper.GetString("scheduler.orchard.apiKeyName"),
 		OrchardAPIKey:     viper.GetString("scheduler.orchard.apiKey"),
 	}
 }
