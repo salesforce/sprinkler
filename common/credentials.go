@@ -30,10 +30,10 @@ type AwsCredentials struct {
 func WithAwsCredentials() AwsCredentials {
 	return AwsCredentials{
 		ClientRegion:   viper.GetString("aws.clientRegion"),
-		AssumeRoleArn:  viper.GetString("aws.assumeRoleArn"),
 		AwsAccessKeyId: viper.GetString("aws.staticCredentials.awsAccessKeyId"),
 		AwsSecretKey:   viper.GetString("aws.staticCredentials.awsSecretKey"),
 		SessionToken:   viper.GetString("aws.staticCredentials.sessionToken"),
+		AssumeRoleArn:  viper.GetString("aws.assumeRoleArn"),
 	}
 }
 
