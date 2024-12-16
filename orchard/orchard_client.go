@@ -91,9 +91,10 @@ func (c OrchardRestClient) IsActivated(orchardID string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode == http.StatusNotFound {
 		return false, fmt.Errorf("workflow %s is not found", orchardID)
 	}
+	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return false, err
