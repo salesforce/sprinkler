@@ -86,32 +86,22 @@ func (c OrchardRestClient) create(result string) (string, error) {
 	return string(orchardID), nil
 }
 
-func (c OrchardRestClient) IsActivated(orchardID string) (bool, error) {
-	resp, err := c.Details(orchardID)
+func (c OrchardRestClient) Details(orchardID string) (*Details, error) {
+	url := fmt.Sprintf("%s/v1/workflow/%s/details", c.Host, orchardID)
+	resp, err := c.request(http.MethodGet, url, nil)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	if resp.StatusCode == http.StatusNotFound {
-		return false, fmt.Errorf("workflow %s is not found", orchardID)
+		return nil, fmt.Errorf("workflow %s is not found", orchardID)
 	}
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 	details, err := ParseDetails(body)
-	if err != nil {
-		return false, err
-	}
-	if details.Status == "pending" {
-		return false, fmt.Errorf("workflow %s is in `pending` status", orchardID)
-	}
-	return true, nil
-}
-
-func (c OrchardRestClient) Details(orchardID string) (*http.Response, error) {
-	url := fmt.Sprintf("%s/v1/workflow/%s/details", c.Host, orchardID)
-	return c.request(http.MethodGet, url, nil)
+	return details, err
 }
 
 func (c OrchardRestClient) Activate(orchardID string) error {
