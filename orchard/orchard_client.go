@@ -107,9 +107,9 @@ func (c OrchardRestClient) Details(orchardID string) (*Details, error) {
 func (c OrchardRestClient) Activate(orchardID string) error {
 	url := fmt.Sprintf("%s/v1/workflow/%s/activate", c.Host, orchardID)
 	rsp, err := c.request(http.MethodPut, url, nil)
-	if err != nil && rsp !=nil && rsp.StatusCode == http.StatusNotFound{
+	if err != nil && rsp != nil && rsp.StatusCode == http.StatusNotFound {
 		details, _ := c.Details(orchardID)
-		if (details != nil && details.Status != "pending") {
+		if details != nil && details.Status != "pending" {
 			return nil
 		}
 	}
