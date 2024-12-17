@@ -43,7 +43,7 @@ func (c OrchardRestClient) request(method string, url string, body io.Reader) (*
 		return nil, err
 	}
 	if rsp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("invalid http code %d", rsp.StatusCode)
+		return rsp, fmt.Errorf("invalid http code %d", rsp.StatusCode)
 	}
 	return rsp, nil
 }
@@ -88,15 +88,15 @@ func (c OrchardRestClient) create(result string) (string, error) {
 
 func (c OrchardRestClient) Details(orchardID string) (*Details, error) {
 	url := fmt.Sprintf("%s/v1/workflow/%s/details", c.Host, orchardID)
-	resp, err := c.request(http.MethodGet, url, nil)
+	rsp, err := c.request(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode == http.StatusNotFound {
+	if rsp.StatusCode == http.StatusNotFound {
 		return nil, fmt.Errorf("workflow %s is not found", orchardID)
 	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	defer rsp.Body.Close()
+	body, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +106,13 @@ func (c OrchardRestClient) Details(orchardID string) (*Details, error) {
 
 func (c OrchardRestClient) Activate(orchardID string) error {
 	url := fmt.Sprintf("%s/v1/workflow/%s/activate", c.Host, orchardID)
-	_, err := c.request(http.MethodPut, url, nil)
+	rsp, err := c.request(http.MethodPut, url, nil)
+	if err != nil && rsp !=nil && rsp.StatusCode == http.StatusNotFound{
+		details, _ := c.Details(orchardID)
+		if (details != nil && details.Status != "pending") {
+			return nil
+		}
+	}
 	return err
 }
 

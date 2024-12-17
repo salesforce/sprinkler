@@ -158,10 +158,6 @@ func (s *Scheduler) activateWorkflow(
 	wf table.Workflow,
 ) string {
 	if err := client.Activate(swf.OrchardID); err != nil {
-		details, err2 := client.Details(swf.OrchardID)
-		if err2 == nil && details.Status != "pending" {
-			return Activated.ToString()
-		}
 		fmt.Printf("[error] error activating workflow (name: %s, orchard_id: %s): %s\n", wf.Name, swf.OrchardID, err)
 		notifyOwner(wf, err)
 		return swf.Status
