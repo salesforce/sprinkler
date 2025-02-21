@@ -89,7 +89,7 @@ func cleanupDB(db *gorm.DB, dbName string) {
 	db.Exec("DELETE FROM workflow_scheduler_lock")
 	db.Exec("DELETE FROM scheduled_workflow")
 	db.Exec("DELETE FROM workflow")
-	// os.Remove(dbName)
+	os.Remove(dbName)
 }
 
 func staticNextRuntime() time.Time {
