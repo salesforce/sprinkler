@@ -6,28 +6,34 @@
 package service
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
-	"mce.salesforce.com/sprinkler/database"
 	"mce.salesforce.com/sprinkler/database/table"
 	"mce.salesforce.com/sprinkler/metrics"
 	"mce.salesforce.com/sprinkler/model"
 )
 
 type Control struct {
-	db             *gorm.DB
-	address        string
-	trustedProxies []string
-	apiKey         string
+	db              *gorm.DB
+	address         string
+	trustedProxies  []string
+	apiKeyEnabled   bool
+	apiKey          string
+	xfccEnabled     bool
+	xfccHeaderName  string
+	xfccMustContain string
 }
 
-type postWorkflowReq struct {
+type putWorkflowReq struct {
 	Name                 string    `json:"name" binding:"required"`
 	Artifact             string    `json:"artifact" binding:"required"`
 	Command              string    `json:"command" binding:"required"`
@@ -43,17 +49,21 @@ type deleteWorkflowReq struct {
 	Name string `json:"name" binding:"required"`
 }
 
-func NewControl(address string, trustedProxies []string, apiKey string) *Control {
+func NewControl(db *gorm.DB, address string, trustedProxies []string, apiKeyEnabled bool, apiKey string, xfccEnabled bool, xfccHeaderName string, xfccMustContain string) *Control {
 	return &Control{
-		db:             database.GetInstance(),
-		address:        address,
-		trustedProxies: trustedProxies,
-		apiKey:         apiKey,
+		db:              db,
+		address:         address,
+		trustedProxies:  trustedProxies,
+		apiKeyEnabled:   apiKeyEnabled,
+		apiKey:          apiKey,
+		xfccEnabled:     xfccEnabled,
+		xfccHeaderName:  xfccHeaderName,
+		xfccMustContain: xfccMustContain,
 	}
 }
 
 func (ctrl *Control) putWorkflow(c *gin.Context) {
-	var body postWorkflowReq
+	var body putWorkflowReq
 	if err := c.BindJSON(&body); err != nil {
 		// bad request
 		fmt.Println(err)
@@ -119,17 +129,17 @@ func (ctrl *Control) getWorkflow(c *gin.Context) {
 	if dbRes.Error != nil || dbRes.RowsAffected == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"Workflow not found:": fmt.Sprintf("name=%s", name)})
 	} else {
-		resp := postWorkflowReq{
-			Name: workflow.Name, 
-			Artifact: workflow.Artifact, 
-			Command: workflow.Command, 
-			Every: workflow.Every.String(), 
-			NextRuntime: workflow.NextRuntime,
-			Backfill: workflow.Backfill, 
-			Owner: workflow.Owner, 
-			IsActive: workflow.IsActive, 
+		resp := putWorkflowReq{
+			Name:                 workflow.Name,
+			Artifact:             workflow.Artifact,
+			Command:              workflow.Command,
+			Every:                workflow.Every.String(),
+			NextRuntime:          workflow.NextRuntime,
+			Backfill:             workflow.Backfill,
+			Owner:                workflow.Owner,
+			IsActive:             workflow.IsActive,
 			ScheduleDelayMinutes: workflow.ScheduleDelayMinutes}
-	
+
 		c.IndentedJSON(http.StatusOK, resp)
 	}
 }
@@ -137,9 +147,31 @@ func (ctrl *Control) getWorkflow(c *gin.Context) {
 func APIKeyAuth(key string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		k := c.GetHeader("x-api-key")
-		if k != key {
+		kSha := sha256.Sum256([]byte(k))
+		kHex := hex.EncodeToString(kSha[:])
+		if kHex != key {
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}
+	}
+}
+
+func XFCCAuth(headerName, mustContain string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		xfcc := c.GetHeader(headerName)
+		if xfcc == "" || (mustContain != "" && !strings.Contains(xfcc, mustContain)) {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+	}
+}
+
+func handleAuth(v *gin.RouterGroup, ctrl *Control) {
+	if ctrl.apiKeyEnabled && ctrl.xfccEnabled {
+		v.Use(APIKeyAuth(ctrl.apiKey))
+		v.Use(XFCCAuth(ctrl.xfccHeaderName, ctrl.xfccMustContain))
+	} else if ctrl.apiKeyEnabled {
+		v.Use(APIKeyAuth(ctrl.apiKey))
+	} else if ctrl.xfccEnabled {
+		v.Use(XFCCAuth(ctrl.xfccHeaderName, ctrl.xfccMustContain))
 	}
 }
 
@@ -154,7 +186,7 @@ func (ctrl *Control) Run() {
 	r.Use(metrics.GinMiddleware)
 
 	v1 := r.Group("/v1")
-	v1.Use(APIKeyAuth(ctrl.apiKey))
+	handleAuth(v1, ctrl)
 	{
 		v1.PUT("/workflow", ctrl.putWorkflow)
 		v1.DELETE("/workflow", ctrl.deleteWorkflow)
