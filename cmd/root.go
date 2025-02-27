@@ -63,8 +63,10 @@ func initConfig() {
 		viper.SetConfigName(".sprinkler")
 	}
 
-	viper.AutomaticEnv()                                   // read in environment variables that match
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_")) // replaces "." with "_" for environment variables
+	viper.AutomaticEnv()                                      // read in environment variables that match
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))    // replaces "." with "_" for environment variables
+	viper.BindEnv("control.apiKeyEnabled", "API_KEY_ENABLED") // binds config key to environment variable
+	viper.BindEnv("control.xfccEnabled", "XFCC_ENABLED")
 
 	// If a config file is found, read it in, otherwise show error
 	err := viper.ReadInConfig()
