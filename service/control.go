@@ -150,6 +150,7 @@ func APIKeyAuth(key string) gin.HandlerFunc {
 		kSha := sha256.Sum256([]byte(k))
 		kHex := hex.EncodeToString(kSha[:])
 		if kHex != key {
+			fmt.Println("API key mismatch")
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}
 	}
@@ -159,6 +160,7 @@ func XFCCAuth(headerName, mustContain string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		xfcc := c.GetHeader(headerName)
 		if xfcc == "" || (mustContain != "" && !strings.Contains(xfcc, mustContain)) {
+			fmt.Println("XFCC header mismatch")
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}
 	}
@@ -166,12 +168,17 @@ func XFCCAuth(headerName, mustContain string) gin.HandlerFunc {
 
 func handleAuth(v *gin.RouterGroup, ctrl *Control) {
 	if ctrl.apiKeyEnabled && ctrl.xfccEnabled {
+		fmt.Println("API key and XFCC auth enabled, using both")
 		v.Use(APIKeyAuth(ctrl.apiKey))
 		v.Use(XFCCAuth(ctrl.xfccHeaderName, ctrl.xfccMustContain))
 	} else if ctrl.apiKeyEnabled {
+		fmt.Println("API key auth enabled")
 		v.Use(APIKeyAuth(ctrl.apiKey))
 	} else if ctrl.xfccEnabled {
+		fmt.Println("XFCC auth enabled")
 		v.Use(XFCCAuth(ctrl.xfccHeaderName, ctrl.xfccMustContain))
+	} else {
+		fmt.Println("No auth enabled")
 	}
 }
 
