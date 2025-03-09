@@ -28,11 +28,11 @@ type ControlCmdOpt struct {
 
 const (
 	CtrlFlagAPIKeyEnabled     string = "apiKeyEnabled"
-	CtrlConfigAPIKeyEnabled   string = "control.apiKeyEnabled"
+	CtrlConfigAPIKeyEnabled   string = "control.api.key.enabled"
 	CtrlFlagAPIKey            string = "apiKey"
 	CtrlConfigAPIKey          string = "control.apiKey"
 	CtrlFlagXfccEnabled       string = "xfccEnabled"
-	CtrlConfigXfccEnabled     string = "control.xfccEnabled"
+	CtrlConfigXfccEnabled     string = "control.xfcc.enabled"
 	CtrlFlagXfccHeaderName    string = "xfccHeaderName"
 	CtrlConfigXfccHeaderName  string = "control.xfccHeaderName"
 	CtrlFlagXfccMustContain   string = "xfccMustContain"
@@ -44,6 +44,8 @@ const (
 )
 
 func getControlCmdOpt() ControlCmdOpt {
+	fmt.Printf("config %s: %s\n", CtrlConfigAPIKeyEnabled, viper.GetString(CtrlConfigAPIKeyEnabled))
+	fmt.Printf("config %s: %s\n", CtrlConfigXfccEnabled, viper.GetString(CtrlConfigXfccEnabled))
 	return ControlCmdOpt{
 		Address:         viper.GetString(CtrlConfigAddress),
 		TrustedProxies:  viper.GetStringSlice(CtrlConfigTrustedProxy),
