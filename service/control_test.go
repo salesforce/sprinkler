@@ -462,3 +462,166 @@ func TestHandleAuth(t *testing.T) {
 	}
 	cleanupDB(mockDB, dbName)
 }
+
+func TestGetWorkflows(t *testing.T) {
+	dbName := fmt.Sprintf("%s_%s", uuid.New().String(), testDBName)
+	mockDB := getMockDB(dbName)
+	ctrl := &Control{db: mockDB}
+	gin.SetMode(gin.TestMode)
+	router := gin.New()
+	router.GET("/v1/workflows", ctrl.getWorkflows)
+
+	// Create additional test workflows with different properties
+	testWorkflows := []table.Workflow{
+		{
+			Name:                 "workflow_a",
+			Artifact:             "artifact_a.jar",
+			Command:              "java -jar a.jar",
+			Every:                model.Every{1, model.EveryDay},
+			NextRuntime:          time.Now().Add(24 * time.Hour),
+			Backfill:             false,
+			Owner:                stringPtr("team_a"),
+			IsActive:             true,
+			ScheduleDelayMinutes: 5,
+		},
+		{
+			Name:                 "workflow_b",
+			Artifact:             "artifact_b.jar",
+			Command:              "java -jar b.jar",
+			Every:                model.Every{2, model.EveryDay},
+			NextRuntime:          time.Now().Add(48 * time.Hour),
+			Backfill:             true,
+			Owner:                stringPtr("team_b"),
+			IsActive:             false,
+			ScheduleDelayMinutes: 10,
+		},
+		{
+			Name:                 "workflow_c",
+			Artifact:             "artifact_c.jar",
+			Command:              "java -jar c.jar",
+			Every:                model.Every{1, model.EveryWeek},
+			NextRuntime:          time.Now().Add(72 * time.Hour),
+			Backfill:             false,
+			Owner:                stringPtr("team_c"),
+			IsActive:             true,
+			ScheduleDelayMinutes: 15,
+		},
+	}
+
+	// Insert test workflows
+	for _, wf := range testWorkflows {
+		mockDB.Create(&wf)
+	}
+
+	t.Run("Default ordering by name", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/workflows", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response []putWorkflowReq
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, len(response), 3)
+
+		// Check that workflows are ordered by name
+		for i := 1; i < len(response); i++ {
+			assert.LessOrEqual(t, response[i-1].Name, response[i].Name)
+		}
+	})
+
+	t.Run("Order by nextRuntime ascending", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/workflows?orderBy=nextRuntime&orderDir=asc", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response []putWorkflowReq
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, len(response), 3)
+
+		// Check that workflows are ordered by nextRuntime ascending
+		for i := 1; i < len(response); i++ {
+			assert.LessOrEqual(t, response[i-1].NextRuntime, response[i].NextRuntime)
+		}
+	})
+
+	t.Run("Order by isActive descending", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/workflows?orderBy=isActive&orderDir=desc", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response []putWorkflowReq
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, len(response), 3)
+
+		// Check that active workflows come first
+		activeFound := false
+		inactiveFound := false
+		for _, wf := range response {
+			if wf.IsActive {
+				activeFound = true
+			} else {
+				inactiveFound = true
+			}
+			// Once we find an inactive workflow, we shouldn't find any more active ones
+			if inactiveFound {
+				assert.False(t, wf.IsActive, "Found active workflow after inactive ones")
+			}
+		}
+		assert.True(t, activeFound, "No active workflows found")
+		assert.True(t, inactiveFound, "No inactive workflows found")
+	})
+
+	t.Run("Order by scheduleDelayMinutes ascending", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/workflows?orderBy=scheduleDelayMinutes&orderDir=asc", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response []putWorkflowReq
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.GreaterOrEqual(t, len(response), 3)
+
+		// Check that workflows are ordered by scheduleDelayMinutes ascending
+		for i := 1; i < len(response); i++ {
+			assert.LessOrEqual(t, response[i-1].ScheduleDelayMinutes, response[i].ScheduleDelayMinutes)
+		}
+	})
+
+	t.Run("Invalid order direction", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/workflows?orderBy=name&orderDir=invalid", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("Invalid orderBy field", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/workflows?orderBy=invalidField&orderDir=asc", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]string
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Contains(t, response["error"], "Invalid orderBy field")
+	})
+
+	cleanupDB(mockDB, dbName)
+}
+
+// Helper function to create string pointers
+func stringPtr(s string) *string {
+	return &s
+}

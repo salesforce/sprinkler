@@ -144,6 +144,70 @@ func (ctrl *Control) getWorkflow(c *gin.Context) {
 	}
 }
 
+func (ctrl *Control) getWorkflows(c *gin.Context) {
+	// Get query parameters for ordering
+	orderBy := c.DefaultQuery("orderBy", "name")
+	orderDir := c.DefaultQuery("orderDir", "asc")
+
+	// Validate order direction
+	if orderDir != "asc" && orderDir != "desc" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "orderDir must be 'asc' or 'desc'"})
+		return
+	}
+
+	// Map frontend field names to database column names
+	columnMap := map[string]string{
+		"name":                 "name",
+		"nextRuntime":          "next_runtime",
+		"isActive":             "is_active",
+		"owner":                "owner",
+		"scheduleDelayMinutes": "schedule_delay_minutes",
+		"artifact":             "artifact",
+		"command":              "command",
+		"backfill":             "backfill",
+	}
+
+	// Get the database column name
+	dbColumn, ok := columnMap[orderBy]
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid orderBy field: %s", orderBy)})
+		return
+	}
+
+	// Build the query
+	query := ctrl.db.Model(&table.Workflow{})
+
+	// Apply ordering
+	query = query.Order(fmt.Sprintf("%s %s", dbColumn, orderDir))
+
+	// Execute query
+	var workflows []table.Workflow
+	result := query.Find(&workflows)
+
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	}
+
+	// Convert to response format
+	var response []putWorkflowReq
+	for _, workflow := range workflows {
+		response = append(response, putWorkflowReq{
+			Name:                 workflow.Name,
+			Artifact:             workflow.Artifact,
+			Command:              workflow.Command,
+			Every:                workflow.Every.String(),
+			NextRuntime:          workflow.NextRuntime,
+			Backfill:             workflow.Backfill,
+			Owner:                workflow.Owner,
+			IsActive:             workflow.IsActive,
+			ScheduleDelayMinutes: workflow.ScheduleDelayMinutes,
+		})
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
 func APIKeyAuth(key string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		k := c.GetHeader("x-api-key")
@@ -198,6 +262,7 @@ func (ctrl *Control) Run() {
 		v1.PUT("/workflow", ctrl.putWorkflow)
 		v1.DELETE("/workflow", ctrl.deleteWorkflow)
 		v1.GET("/workflow/:name", ctrl.getWorkflow)
+		v1.GET("/workflows", ctrl.getWorkflows)
 	}
 
 	r.GET("__status", func(c *gin.Context) {
