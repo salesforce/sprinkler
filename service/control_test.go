@@ -684,6 +684,23 @@ func TestGetWorkflows(t *testing.T) {
 		assert.Contains(t, workflow["name"], "test", "Found workflow name does not contain 'test'")
 	})
 
+	t.Run("Filter by name pattern - valid characters", func(t *testing.T) {
+		validPatterns := []string{
+			"test_workflow", // underscore
+			"test.workflow", // dot
+			"test123",       // numbers
+			"TestWorkflow",  // mixed case
+		}
+
+		for _, pattern := range validPatterns {
+			req, _ := http.NewRequest("GET", fmt.Sprintf("/v1/workflows?like=%s", pattern), nil)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusOK, w.Code, "Pattern should be accepted: "+pattern)
+		}
+	})
+
 	t.Run("Pagination", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/workflows?page=1&limit=2", nil)
 		w := httptest.NewRecorder()

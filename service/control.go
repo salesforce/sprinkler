@@ -13,6 +13,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -179,13 +180,22 @@ func (ctrl *Control) getWorkflows(c *gin.Context) {
 
 	// Apply name filtering if like pattern is provided
 	if likePattern != "" {
+		// Validate like pattern to prevent SQL injection and ensure valid characters
+		validCharsPattern := regexp.MustCompile(`^[a-zA-Z0-9_.]+$`)
+		if !validCharsPattern.MatchString(likePattern) {
+			c.JSON(http.StatusBadRequest, ErrorResponse{
+				Error:   "invalid_like_pattern",
+				Code:    "400",
+				Message: "like pattern can only contain letters, numbers, underscore (_), and dot (.)",
+			})
+			return
+		}
 		query = query.Where("name LIKE ?", "%"+likePattern+"%")
 	}
 
 	// Create a new session for the count query
 	var total int64
-	var countQuery *gorm.DB
-	countQuery = query.Session(&gorm.Session{})
+	countQuery := query.Session(&gorm.Session{})
 	countQuery.Count(&total)
 
 	// Validate order direction
