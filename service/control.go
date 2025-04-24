@@ -155,7 +155,7 @@ func (ctrl *Control) getWorkflows(c *gin.Context) {
 		return
 	}
 
-	// Map frontend field names to database column names
+	// Map field names to database column names
 	columnMap := map[string]string{
 		"name":                 "name",
 		"nextRuntime":          "next_runtime",
