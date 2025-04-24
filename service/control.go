@@ -10,7 +10,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -149,9 +151,29 @@ func (ctrl *Control) getWorkflows(c *gin.Context) {
 	orderBy := c.DefaultQuery("orderBy", "name")
 	orderDir := c.DefaultQuery("orderDir", "asc")
 
+	// Get pagination parameters
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "50")
+
+	// Get filtering parameters
+	likePattern := c.Query("like")
+
 	// Validate order direction
 	if orderDir != "asc" && orderDir != "desc" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "orderDir must be 'asc' or 'desc'"})
+		return
+	}
+
+	// Parse pagination parameters
+	page, err := strconv.Atoi(pageStr)
+	if err != nil || page < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "page must be a positive integer"})
+		return
+	}
+
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit < 1 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "limit must be a positive integer"})
 		return
 	}
 
@@ -177,8 +199,24 @@ func (ctrl *Control) getWorkflows(c *gin.Context) {
 	// Build the query
 	query := ctrl.db.Model(&table.Workflow{})
 
+	// Apply name filtering if like pattern is provided
+	if likePattern != "" {
+		query = query.Where("name LIKE ?", "%"+likePattern+"%")
+	}
+
+	// Count total records for pagination
+	var total int64
+	countQuery := query
+	countQuery.Count(&total)
+
+	// Calculate pagination
+	offset := (page - 1) * limit
+
 	// Apply ordering
 	query = query.Order(fmt.Sprintf("%s %s", dbColumn, orderDir))
+
+	// Apply pagination
+	query = query.Offset(offset).Limit(limit)
 
 	// Execute query
 	var workflows []table.Workflow
@@ -205,7 +243,16 @@ func (ctrl *Control) getWorkflows(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, response)
+	// Return response with pagination metadata
+	c.JSON(http.StatusOK, gin.H{
+		"data": response,
+		"pagination": gin.H{
+			"total":      total,
+			"page":       page,
+			"limit":      limit,
+			"totalPages": int(math.Ceil(float64(total) / float64(limit))),
+		},
+	})
 }
 
 func APIKeyAuth(key string) gin.HandlerFunc {

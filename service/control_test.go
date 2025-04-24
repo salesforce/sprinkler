@@ -506,12 +506,33 @@ func TestGetWorkflows(t *testing.T) {
 			IsActive:             true,
 			ScheduleDelayMinutes: 15,
 		},
+		{
+			Name:                 "test4_workflows",
+			Artifact:             "test_artifact.jar",
+			Command:              "java -jar test.jar",
+			Every:                model.Every{1, model.EveryDay},
+			NextRuntime:          time.Now().Add(96 * time.Hour),
+			Backfill:             false,
+			Owner:                stringPtr("test_team"),
+			IsActive:             true,
+			ScheduleDelayMinutes: 20,
+		},
 	}
+
+	// Count existing workflows before adding new ones
+	var existingCount int64
+	mockDB.Model(&table.Workflow{}).Count(&existingCount)
 
 	// Insert test workflows
 	for _, wf := range testWorkflows {
-		mockDB.Create(&wf)
+		result := mockDB.Create(&wf)
+		assert.NoError(t, result.Error, "Failed to create test workflow: %v", wf.Name)
 	}
+
+	// Verify that all workflows were created
+	var totalCount int64
+	mockDB.Model(&table.Workflow{}).Count(&totalCount)
+	assert.Equal(t, existingCount+int64(len(testWorkflows)), totalCount, "Not all test workflows were created")
 
 	t.Run("Default ordering by name", func(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/v1/workflows", nil)
@@ -520,14 +541,31 @@ func TestGetWorkflows(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response []putWorkflowReq
+		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, len(response), 3)
+
+		data, ok := response["data"].([]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, totalCount, int64(len(data)), "Expected all workflows to be returned")
+
+		// Verify pagination metadata
+		pagination, ok := response["pagination"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, float64(totalCount), pagination["total"])
+		assert.Equal(t, float64(1), pagination["page"])
+		assert.Equal(t, float64(50), pagination["limit"])
+		assert.Equal(t, float64(1), pagination["totalPages"])
 
 		// Check that workflows are ordered by name
-		for i := 1; i < len(response); i++ {
-			assert.LessOrEqual(t, response[i-1].Name, response[i].Name)
+		workflows := make([]putWorkflowReq, len(data))
+		for i, item := range data {
+			workflowJSON, _ := json.Marshal(item)
+			json.Unmarshal(workflowJSON, &workflows[i])
+		}
+
+		for i := 1; i < len(workflows); i++ {
+			assert.LessOrEqual(t, workflows[i-1].Name, workflows[i].Name)
 		}
 	})
 
@@ -538,14 +576,23 @@ func TestGetWorkflows(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response []putWorkflowReq
+		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, len(response), 3)
+
+		data, ok := response["data"].([]interface{})
+		assert.True(t, ok)
+		assert.GreaterOrEqual(t, len(data), 3)
 
 		// Check that workflows are ordered by nextRuntime ascending
-		for i := 1; i < len(response); i++ {
-			assert.LessOrEqual(t, response[i-1].NextRuntime, response[i].NextRuntime)
+		workflows := make([]putWorkflowReq, len(data))
+		for i, item := range data {
+			workflowJSON, _ := json.Marshal(item)
+			json.Unmarshal(workflowJSON, &workflows[i])
+		}
+
+		for i := 1; i < len(workflows); i++ {
+			assert.LessOrEqual(t, workflows[i-1].NextRuntime, workflows[i].NextRuntime)
 		}
 	})
 
@@ -556,27 +603,43 @@ func TestGetWorkflows(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response []putWorkflowReq
+		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, len(response), 3)
 
-		// Check that active workflows come first
-		activeFound := false
-		inactiveFound := false
-		for _, wf := range response {
-			if wf.IsActive {
-				activeFound = true
-			} else {
-				inactiveFound = true
-			}
-			// Once we find an inactive workflow, we shouldn't find any more active ones
-			if inactiveFound {
-				assert.False(t, wf.IsActive, "Found active workflow after inactive ones")
+		data, ok := response["data"].([]interface{})
+		assert.True(t, ok)
+		assert.GreaterOrEqual(t, len(data), 3)
+
+		// Check that workflows are ordered by isActive descending
+		workflows := make([]putWorkflowReq, len(data))
+		for i, item := range data {
+			workflowJSON, _ := json.Marshal(item)
+			json.Unmarshal(workflowJSON, &workflows[i])
+		}
+
+		// Verify that active workflows come before inactive ones
+		foundInactive := false
+		for _, wf := range workflows {
+			if !wf.IsActive {
+				foundInactive = true
+			} else if foundInactive {
+				t.Error("Found active workflow after inactive workflow")
 			}
 		}
-		assert.True(t, activeFound, "No active workflows found")
-		assert.True(t, inactiveFound, "No inactive workflows found")
+
+		// Verify we have both active and inactive workflows
+		hasActive := false
+		hasInactive := false
+		for _, wf := range workflows {
+			if wf.IsActive {
+				hasActive = true
+			} else {
+				hasInactive = true
+			}
+		}
+		assert.True(t, hasActive, "No active workflows found")
+		assert.True(t, hasInactive, "No inactive workflows found")
 	})
 
 	t.Run("Order by scheduleDelayMinutes ascending", func(t *testing.T) {
@@ -586,14 +649,23 @@ func TestGetWorkflows(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response []putWorkflowReq
+		var response map[string]interface{}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, len(response), 3)
+
+		data, ok := response["data"].([]interface{})
+		assert.True(t, ok)
+		assert.GreaterOrEqual(t, len(data), 3)
 
 		// Check that workflows are ordered by scheduleDelayMinutes ascending
-		for i := 1; i < len(response); i++ {
-			assert.LessOrEqual(t, response[i-1].ScheduleDelayMinutes, response[i].ScheduleDelayMinutes)
+		workflows := make([]putWorkflowReq, len(data))
+		for i, item := range data {
+			workflowJSON, _ := json.Marshal(item)
+			json.Unmarshal(workflowJSON, &workflows[i])
+		}
+
+		for i := 1; i < len(workflows); i++ {
+			assert.LessOrEqual(t, workflows[i-1].ScheduleDelayMinutes, workflows[i].ScheduleDelayMinutes)
 		}
 	})
 
@@ -616,6 +688,78 @@ func TestGetWorkflows(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Contains(t, response["error"], "Invalid orderBy field")
+	})
+
+	t.Run("Filter by name pattern", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/workflows?like=test4", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response map[string]interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		data, ok := response["data"].([]interface{})
+		assert.True(t, ok)
+
+		// Should only find the test_workflow
+		assert.Equal(t, 1, len(data), "Expected exactly one workflow with 'test' in the name")
+
+		workflow := make(map[string]interface{})
+		workflowJSON, _ := json.Marshal(data[0])
+		json.Unmarshal(workflowJSON, &workflow)
+
+		assert.Contains(t, workflow["name"], "test", "Found workflow name does not contain 'test'")
+	})
+
+	t.Run("Pagination", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/workflows?page=1&limit=2", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response map[string]interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		data, ok := response["data"].([]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, 2, len(data))
+
+		pagination, ok := response["pagination"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, float64(1), pagination["page"])
+		assert.Equal(t, float64(2), pagination["limit"])
+		assert.GreaterOrEqual(t, pagination["total"], float64(4))
+	})
+
+	t.Run("Invalid page parameter", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/workflows?page=invalid", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]string
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Contains(t, response["error"], "page must be a positive integer")
+	})
+
+	t.Run("Invalid limit parameter", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/v1/workflows?limit=invalid", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]string
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Contains(t, response["error"], "limit must be a positive integer")
 	})
 
 	cleanupDB(mockDB, dbName)
