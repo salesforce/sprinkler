@@ -13,6 +13,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/sns"
 	"github.com/google/uuid"
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
 	"mce.salesforce.com/sprinkler/common"
 	"mce.salesforce.com/sprinkler/database"
@@ -292,9 +293,16 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 		log.Println("[error] error initiating SNS client")
 	}
 
+	subject := viper.GetString(common.SNSConfigSubject)
+
+	if len(subject) > 100 {
+		subject = subject[:100]
+	}
+
 	croppedErrMsg := truncate(errMsg, SNSMessageMaxBytes)
 	input := &sns.PublishInput{
 		Message:  &croppedErrMsg,
+		Subject:  &subject,
 		TopicArn: wf.Owner,
 	}
 
