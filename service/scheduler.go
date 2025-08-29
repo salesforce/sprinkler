@@ -66,7 +66,6 @@ func (s *Scheduler) Start() {
 	fmt.Println("Scheduler Started")
 	tick := time.Tick(s.Interval)
 	for range tick {
-		fmt.Println("tick")
 		s.scheduleWorkflows(database.GetInstance())
 		s.activateWorkflows(database.GetInstance())
 	}
