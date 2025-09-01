@@ -11,4 +11,5 @@ const (
 	DBConfigPassword        = "db.password"
 	DBConfigDBName          = "db.dbname"
 	DBConfigSSLMode         = "db.sslmode"
+	SNSConfigSubject        = "sns.subject"
 )

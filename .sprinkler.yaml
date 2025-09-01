@@ -35,6 +35,11 @@ cleanup:
   workflowActivationLock: "1h"
   workflowSchedulerLock: "1h"
 
+# SNS notification configuration
+sns:
+  # Subject for workflow failure notifications
+  subject: "Workflow Schedule Failure"
+
 # configs for static credentials or role arn to assume
 # aws:
 #   clientRegion: "changeme"
