@@ -33,16 +33,16 @@ Start control service on a new tab, to later post a Sprinkler json workflow
 go run . service control --config .sprinkler.yaml 
 ```
 
-Put to `http://localhost:8080/v1/workflow` a Sprinkler workflow, example payload from [ExampleWorkflow.scala](https://github.com/salesforce/spade/blob/main/spade-examples/src/main/scala/com/salesforce/mce/spade/examples/ExampleWorkflow.scala)
+Put to `http://localhost:8080/v1/workflow` a Sprinkler workflow, example payload from [ExampleWorkflow.scala](https://github.com/salesforce/spade/blob/main/spade-examples/src/main/scala/com/salesforce/ExampleWorkflow.scala)
 ```
 {
     "name": "test-workflow",
-    "artifact": "s3://sprinkler-salesforce-bucket/jars/test/spade-example.jar",
-    "command":  "[\"java\", \"-cp\", \"spade-example.jar\", \"com.salesforce.mce.spade.examples.ExampleWorkflow\", \"generate\", \"--compact\"]",
+    "artifact": "s3://some-example-bucket/some-example.jar",
+    "command":  "[\"java\", \"-cp\", \"some-example.jar\", \"com.salesforce.ExampleWorkflow\", \"generate\", \"--compact\"]",
     "every": "60.minute",
-    "nextRuntime": "2024-08-22T21:00:00Z",
+    "nextRuntime": "2026-02-22T21:00:00Z",
     "backfill": false,
-    "owner": "arn:aws:sns:us-east-2:444455556666:MyTopic",
+    "owner": "arn:aws:sns:region:112233:MyTopic",
     "isActive": true
 }
 ```
