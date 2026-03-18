@@ -298,11 +298,21 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 	// Replace {workflow_name} placeholder with actual workflow name
 	subject = strings.ReplaceAll(subject, "{workflow_name}", wf.Name)
 
+	// If subject exceeds 100 characters, truncate at the last whitespace before position 100
+	messageBody := errMsg
 	if len(subject) > 100 {
-		subject = subject[:100]
+		// Find the last whitespace before position 100
+		truncatePos := strings.LastIndexAny(subject[:100], " \t\n")
+		if truncatePos == -1 {
+			// No whitespace found, truncate at position 100
+			truncatePos = 100
+		}
+		exceededPortion := subject[truncatePos:]
+		messageBody = fmt.Sprintf("Subject (truncated): %s\n\n%s", strings.TrimSpace(exceededPortion), errMsg)
+		subject = strings.TrimSpace(subject[:truncatePos])
 	}
 
-	croppedErrMsg := truncate(errMsg, SNSMessageMaxBytes)
+	croppedErrMsg := truncate(messageBody, SNSMessageMaxBytes)
 	input := &sns.PublishInput{
 		Message:  &croppedErrMsg,
 		Subject:  &subject,
