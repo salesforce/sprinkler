@@ -38,6 +38,11 @@ cleanup:
 # SNS notification configuration
 sns:
   # Subject for workflow failure notifications
+  # Supports template placeholder {workflow_name} to include the workflow name
+  # Examples:
+  #   - "Workflow Schedule Failure" (default, no workflow name)
+  #   - "[{workflow_name}] Workflow Schedule Failure" (with workflow name in brackets)
+  #   - "{workflow_name}: Schedule Failure" (workflow name as prefix)
   subject: "Workflow Schedule Failure"
 
 # configs for static credentials or role arn to assume

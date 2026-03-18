@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sns"
@@ -293,6 +294,9 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 	}
 
 	subject := viper.GetString(common.SNSConfigSubject)
+
+	// Replace {workflow_name} placeholder with actual workflow name
+	subject = strings.ReplaceAll(subject, "{workflow_name}", wf.Name)
 
 	if len(subject) > 100 {
 		subject = subject[:100]
