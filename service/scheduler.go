@@ -307,9 +307,13 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 			// No whitespace found, truncate at position 100
 			truncatePos = 100
 		}
-		exceededPortion := subject[truncatePos:]
-		messageBody = fmt.Sprintf("Subject (truncated): %s\n\n%s", strings.TrimSpace(exceededPortion), errMsg)
+		exceededPortion := strings.TrimSpace(subject[truncatePos:])
 		subject = strings.TrimSpace(subject[:truncatePos])
+
+		// Only add truncation message if there's actual content that was truncated
+		if exceededPortion != "" {
+			messageBody = fmt.Sprintf("Subject (truncated): %s\n\n%s", exceededPortion, errMsg)
+		}
 	}
 
 	croppedErrMsg := truncate(messageBody, SNSMessageMaxBytes)
