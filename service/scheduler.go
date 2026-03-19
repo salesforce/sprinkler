@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -295,8 +296,20 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 
 	subject := viper.GetString(common.SNSConfigSubject)
 
-	// Replace {workflow_name} placeholder with actual workflow name
-	subject = strings.ReplaceAll(subject, "{workflow_name}", wf.Name)
+	// Extract workflow name using regex if configured
+	workflowName := wf.Name
+	regexPattern := viper.GetString(common.SNSConfigWorkflowNameRegex)
+	if regexPattern != "" {
+		re, err := regexp.Compile(regexPattern)
+		if err != nil {
+			log.Printf("[warning] invalid sns.workflowNameRegex pattern %q: %v\n", regexPattern, err)
+		} else if match := re.FindString(wf.Name); match != "" {
+			workflowName = match
+		}
+	}
+
+	// Replace {workflow_name} placeholder with extracted workflow name
+	subject = strings.ReplaceAll(subject, "{workflow_name}", workflowName)
 
 	// If subject exceeds 100 characters, truncate at the last whitespace before position 100
 	messageBody := errMsg

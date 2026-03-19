@@ -45,6 +45,14 @@ sns:
   #   - "{workflow_name}: Schedule Failure" (workflow name as prefix)
   subject: "Workflow Schedule Failure"
 
+  # Optional regex pattern to extract a simpler name from the full workflow name
+  # The first match found will be used as the workflow name in the subject
+  # Examples:
+  #   - "[^.]+$" extracts "text" from "com.abc.text" (everything after the last dot)
+  #   - "\.([^.]+)$" extracts "text" from "com.abc.text" (capture group after last dot)
+  #   - "^[^.]+\.(.+)" extracts "abc.text" from "com.abc.text" (everything after first dot)
+  # workflowNameRegex: "[^.]+$"
+
 # configs for static credentials or role arn to assume
 # aws:
 #   clientRegion: "changeme"
