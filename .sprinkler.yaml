@@ -37,21 +37,17 @@ cleanup:
 
 # SNS notification configuration
 sns:
-  # Subject for workflow failure notifications
-  # Supports template placeholder {workflow_name} to include the workflow name
+  # Subject for workflow failure notifications using Go text/template syntax
+  # Available data: .WorkflowName (the full workflow name)
+  # Available functions: regexExtract <pattern> <text> (extracts first regex match)
+  #
   # Examples:
-  #   - "Workflow Schedule Failure" (default, no workflow name)
-  #   - "[{workflow_name}] Workflow Schedule Failure" (with workflow name in brackets)
-  #   - "{workflow_name}: Schedule Failure" (workflow name as prefix)
+  #   - "Workflow Schedule Failure" (no workflow name)
+  #   - "[{{.WorkflowName}}] Workflow Schedule Failure" (full workflow name in brackets)
+  #   - "{{.WorkflowName}}: Schedule Failure" (workflow name as prefix)
+  #   - "[{{regexExtract `[^.]+$` .WorkflowName}}] Failure" (extract "text" from "com.abc.text")
+  #   - "[{{regexExtract `\.([^.]+)$` .WorkflowName}}] Failure" (extract using capture group)
   subject: "Workflow Schedule Failure"
-
-  # Optional regex pattern to extract a simpler name from the full workflow name
-  # The first match found will be used as the workflow name in the subject
-  # Examples:
-  #   - "[^.]+$" extracts "text" from "com.abc.text" (everything after the last dot)
-  #   - "\.([^.]+)$" extracts "text" from "com.abc.text" (capture group after last dot)
-  #   - "^[^.]+\.(.+)" extracts "abc.text" from "com.abc.text" (everything after first dot)
-  # workflowNameRegex: "[^.]+$"
 
 # configs for static credentials or role arn to assume
 # aws:

@@ -6,11 +6,13 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
 	"regexp"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sns"
@@ -294,22 +296,41 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 		log.Println("[error] error initiating SNS client")
 	}
 
-	subject := viper.GetString(common.SNSConfigSubject)
+	subjectTemplate := viper.GetString(common.SNSConfigSubject)
+	var subject string
 
-	// Extract workflow name using regex if configured
-	workflowName := wf.Name
-	regexPattern := viper.GetString(common.SNSConfigWorkflowNameRegex)
-	if regexPattern != "" {
-		re, err := regexp.Compile(regexPattern)
-		if err != nil {
-			log.Printf("[warning] invalid sns.workflowNameRegex pattern %q: %v\n", regexPattern, err)
-		} else if match := re.FindString(wf.Name); match != "" {
-			workflowName = match
-		}
+	// Create template with custom functions
+	funcMap := template.FuncMap{
+		"regexExtract": func(pattern, text string) string {
+			re, err := regexp.Compile(pattern)
+			if err != nil {
+				log.Printf("[warning] invalid regex pattern %q: %v\n", pattern, err)
+				return text
+			}
+			if match := re.FindString(text); match != "" {
+				return match
+			}
+			return text
+		},
 	}
 
-	// Replace {workflow_name} placeholder with extracted workflow name
-	subject = strings.ReplaceAll(subject, "{workflow_name}", workflowName)
+	// Execute template
+	tmpl, err := template.New("subject").Funcs(funcMap).Parse(subjectTemplate)
+	if err != nil {
+		log.Printf("[warning] invalid SNS subject template %q: %v\n", subjectTemplate, err)
+		subject = subjectTemplate // fallback to raw template
+	} else {
+		var buf bytes.Buffer
+		data := map[string]interface{}{
+			"WorkflowName": wf.Name,
+		}
+		if err := tmpl.Execute(&buf, data); err != nil {
+			log.Printf("[warning] error executing SNS subject template: %v\n", err)
+			subject = subjectTemplate // fallback to raw template
+		} else {
+			subject = buf.String()
+		}
+	}
 
 	// If subject exceeds 100 characters, truncate at the last whitespace before position 100
 	messageBody := errMsg
