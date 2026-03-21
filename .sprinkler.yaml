@@ -37,7 +37,20 @@ cleanup:
 
 # SNS notification configuration
 sns:
-  # Subject for workflow failure notifications
+  # Subject for workflow failure notifications using Go text/template syntax
+  # Available data: .WorkflowName (the full workflow name)
+  # Available functions:
+  #   - regexExtract <pattern> <text> (extracts first regex match)
+  #   - stripPrefix <prefix> <text> (removes prefix from text)
+  #   - stripSuffix <suffix> <text> (removes suffix from text)
+  #
+  # Examples:
+  #   - "Workflow Schedule Failure" (no workflow name)
+  #   - "[{{.WorkflowName}}] Workflow Schedule Failure" (full workflow name in brackets)
+  #   - "{{.WorkflowName}}: Schedule Failure" (workflow name as prefix)
+  #   - "[{{regexExtract `[^.]+$` .WorkflowName}}] Failure" (extract "text" from "com.abc.text")
+  #   - "[{{stripPrefix `com.abc.` .WorkflowName}}] Failure" (strip "com.abc." prefix)
+  #   - "[{{stripSuffix `.workflow` .WorkflowName}}] Failure" (strip ".workflow" suffix)
   subject: "Workflow Schedule Failure"
 
 # configs for static credentials or role arn to assume

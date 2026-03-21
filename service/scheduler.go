@@ -6,9 +6,13 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
+	"regexp"
+	"strings"
+	"text/template"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sns"
@@ -292,13 +296,67 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 		log.Println("[error] error initiating SNS client")
 	}
 
-	subject := viper.GetString(common.SNSConfigSubject)
+	subjectTemplate := viper.GetString(common.SNSConfigSubject)
+	var subject string
 
-	if len(subject) > 100 {
-		subject = subject[:100]
+	// Create template with custom functions
+	funcMap := template.FuncMap{
+		"regexExtract": func(pattern, text string) string {
+			re, err := regexp.Compile(pattern)
+			if err != nil {
+				log.Printf("[warning] invalid regex pattern %q: %v\n", pattern, err)
+				return text
+			}
+			if match := re.FindString(text); match != "" {
+				return match
+			}
+			return text
+		},
+		"stripPrefix": func(prefix, text string) string {
+			return strings.TrimPrefix(text, prefix)
+		},
+		"stripSuffix": func(suffix, text string) string {
+			return strings.TrimSuffix(text, suffix)
+		},
 	}
 
-	croppedErrMsg := truncate(errMsg, SNSMessageMaxBytes)
+	// Execute template
+	tmpl, err := template.New("subject").Funcs(funcMap).Parse(subjectTemplate)
+	if err != nil {
+		log.Printf("[warning] invalid SNS subject template %q: %v\n", subjectTemplate, err)
+		subject = subjectTemplate // fallback to raw template
+	} else {
+		var buf bytes.Buffer
+		data := map[string]interface{}{
+			"WorkflowName": wf.Name,
+		}
+		if err := tmpl.Execute(&buf, data); err != nil {
+			log.Printf("[warning] error executing SNS subject template: %v\n", err)
+			subject = subjectTemplate // fallback to raw template
+		} else {
+			subject = buf.String()
+		}
+	}
+
+	// If subject exceeds 100 characters, truncate at the last whitespace before position 100
+	messageBody := errMsg
+	if len(subject) > 100 {
+		// Find the last whitespace before position 100
+		truncatePos := strings.LastIndexAny(subject[:100], " \t\n")
+		if truncatePos == -1 {
+			// No whitespace found, truncate at position 100
+			truncatePos = 100
+		}
+		exceededPortion := strings.TrimSpace(subject[truncatePos:])
+		subject = strings.TrimSpace(subject[:truncatePos])
+
+		// Only add truncation message if there's actual content that was truncated
+		if exceededPortion != "" {
+			messageBody = fmt.Sprintf("Subject (truncated): %s\n\n%s", exceededPortion, errMsg)
+		}
+	}
+
+	croppedErrMsg := truncate(messageBody, SNSMessageMaxBytes)
 	input := &sns.PublishInput{
 		Message:  &croppedErrMsg,
 		Subject:  &subject,
