@@ -312,6 +312,12 @@ func notifyOwner(wf table.Workflow, orchardErr error) {
 			}
 			return text
 		},
+		"stripPrefix": func(prefix, text string) string {
+			return strings.TrimPrefix(text, prefix)
+		},
+		"stripSuffix": func(suffix, text string) string {
+			return strings.TrimSuffix(text, suffix)
+		},
 	}
 
 	// Execute template
