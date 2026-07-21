@@ -95,9 +95,6 @@ func cmdOutput(cmd *exec.Cmd) ([]byte, []byte, error) {
 }
 
 func processCmd(command string, pwd string) ([]string, error) {
-	if err := os.Chdir(pwd); err != nil {
-		return []string{}, fmt.Errorf("cd %v has error: %w", pwd, err)
-	}
 	cmds, err := parseCommandLine(command)
 	if err != nil {
 		return []string{}, fmt.Errorf("parse command line error %w", err)
@@ -106,6 +103,9 @@ func processCmd(command string, pwd string) ([]string, error) {
 		return []string{}, fmt.Errorf("invalid command line %s", command)
 	}
 	cmd := exec.Command(cmds[0], cmds[1:]...)
+	// Set the working dir on this command only. os.Chdir mutates the
+	// process-global cwd and races between concurrent scheduler goroutines.
+	cmd.Dir = pwd
 	stdout, stderr, err := cmdOutput(cmd)
 	output := string(stdout)
 	if err != nil {
